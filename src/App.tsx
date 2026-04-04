@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
 
 interface Preset { label: string; w: number; h: number }
@@ -60,6 +60,15 @@ const T: Record<string, Record<string, string>> = {
     copyLink: "Скопировать ссылку", linkCopied: "✓ Скопировано", posError: "Ошибка позиции метки",
     compare: "Сравнение", compareHint: "Кликните на строку таблицы чтобы добавить в сравнение (макс. 9)",
     distTable: "Размер 1 пикселя на дистанции",
+    pixelSize: "Размер 1 пикселя на дистанции", addCompare: "Добавить в сравнение +", removeCompare: "Убрать из сравнения ✕",
+    expandHint: "Размер пикселя — физический размер, покрываемый 1 пикселем дисплея на данной дистанции. Ошибка позиции — насколько штрих сетки сдвинут от идеального положения из-за округления px/мрад.",
+    dist: "Дист.", clickRowHint: "Кликните на строку чтобы раскрыть таблицу дистанций и добавить в сравнение",
+    tipPixelSize: "Какой физический размер покрывает 1 пиксель дисплея на каждой дистанции. Определяет минимальную видимую деталь.",
+    tipPosError: "На сколько миллиметров штрих прицельной сетки сдвинут от идеального положения. Формула: ошибка_% / 100 × дистанция_м",
+    tipModeBoth: "Итоговая ошибка = максимум из горизонтальной и вертикальной. Подходит когда важна равномерная точность по всем направлениям.",
+    tipModeVPri: "Сортировка сначала по вертикальной ошибке. При равных V — выбирается лучший H. Для задач где вертикальные поправки (holdover, mil-ranging) важнее ветровых.",
+    tipModeVOnly: "Только вертикальная ошибка определяет рейтинг. Горизонталь полностью игнорируется. Максимально прагматичный выбор под баллистику.",
+    tipRowClick: "Кликните чтобы раскрыть таблицу дистанций.", tipPosCell: "мм — штрих сетки сдвинут от идеальной позиции на",
   },
   en: {
     title: "Lens Selection", subtitle: "Find focal length where 1 mrad = integer display pixels",
@@ -101,6 +110,15 @@ const T: Record<string, Record<string, string>> = {
     copyLink: "Copy link", linkCopied: "✓ Copied", posError: "Mark position error",
     compare: "Compare", compareHint: "Click a table row to add to comparison (max 9)",
     distTable: "1 pixel size at distance",
+    pixelSize: "1 pixel size at distance", addCompare: "Add to comparison +", removeCompare: "Remove from comparison ✕",
+    expandHint: "Pixel size — physical area covered by 1 display pixel at this distance. Position error — how far a reticle mark is shifted from its ideal position due to px/mrad rounding.",
+    dist: "Dist.", clickRowHint: "Click a row to expand distance tables and add to comparison",
+    tipPixelSize: "Physical area covered by 1 display pixel at each distance. Determines the minimum visible detail.",
+    tipPosError: "How many millimeters a reticle mark is shifted from its ideal position. Formula: error_% / 100 × distance_m",
+    tipModeBoth: "Overall error = max of horizontal and vertical. Best when uniform accuracy in all directions matters.",
+    tipModeVPri: "Sort by vertical error first. Equal V → better H wins. For tasks where vertical corrections (holdover, mil-ranging) matter more than wind.",
+    tipModeVOnly: "Only vertical error determines ranking. Horizontal is fully ignored. Most pragmatic choice for ballistics.",
+    tipRowClick: "Click to expand distance tables.", tipPosCell: "mm — mark shifted from ideal position at",
   },
   zh: {
     title: "镜头选择", subtitle: "1mrad=整数像素",
@@ -133,6 +151,15 @@ const T: Record<string, Record<string, string>> = {
     copyLink: "复制链接", linkCopied: "✓ 已复制", posError: "标记位置误差",
     compare: "比较", compareHint: "点击表格行添加到比较（最多9）",
     distTable: "像素在距离处的大小",
+    pixelSize: "像素在距离处的大小", addCompare: "添加到比较 +", removeCompare: "从比较中删除 ✕",
+    expandHint: "像素大小——1个显示像素在该距离处覆盖的物理面积。位置误差——由于px/mrad舍入导致标记偏离理想位置的距离。",
+    dist: "距离", clickRowHint: "点击行展开距离表并添加到比较",
+    tipPixelSize: "每个距离处1个显示像素覆盖的物理面积。决定最小可见细节。",
+    tipPosError: "瞄准线标记偏离理想位置的毫米数。公式：误差%/100×距离m",
+    tipModeBoth: "综合误差=水平和垂直中的最大值。适用于各方向精度同等重要的场景。",
+    tipModeVPri: "先按垂直误差排序。V相同时选择更好的H。适用于垂直修正比风偏更重要的任务。",
+    tipModeVOnly: "仅垂直误差决定排名。完全忽略水平轴。最实用的弹道选择。",
+    tipRowClick: "点击展开距离表。", tipPosCell: "mm——标记偏离理想位置于",
   },
 };
 const LANG_KEY = "rika-calc-lang";
@@ -211,12 +238,12 @@ function Nm({ value, onChange, min, max }: { value: number; onChange: (v: number
     style={{ ...iS, width: 90 }} />;
 }
 function Cd({ title, children }: { title?: string; children: React.ReactNode }) { return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>{title && <div style={sS}>{title}</div>}{children}</div>); }
-function TH({ children, align, w, color, tip }: { children?: React.ReactNode; align?: string; w?: number; color?: string; tip?: string }) { return (<th data-tip={tip || undefined} style={{ padding: "10px", textAlign: (align || "left") as any, width: w, fontSize: 10, color: color || C.dim, fontWeight: 600, whiteSpace: "nowrap", fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.04em", cursor: tip ? "help" : "default" }}>{children}</th>); }
+function TH({ children, align, w, color, tip }: { children?: React.ReactNode; align?: string; w?: number; color?: string; tip?: string }) { return (<th title={tip || undefined} style={{ padding: "10px", textAlign: (align || "left") as any, width: w, fontSize: 10, color: color || C.dim, fontWeight: 600, whiteSpace: "nowrap", fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.04em", cursor: tip ? "help" : "default" }}>{children}</th>); }
 const CTip = ({ active, payload }: any) => { if (!active || !payload?.length) return null; const d = payload[0]?.payload; if (!d) return null; return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", fontFamily: mn, fontSize: 11, color: C.text, lineHeight: 1.8 }}><div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>F={d.f}mm</div><div><span style={{ color: C.H }}>H:</span> {d.eH.toFixed(2)}%</div><div><span style={{ color: C.V }}>V:</span> {d.eV.toFixed(2)}%</div></div>); };
 
 function SortMode({ mode, setMode, t }: { mode: SortMode; setMode: (m: SortMode) => void; t: (k: string) => string }) {
-  const ms: { k: SortMode; l: string; d: string; c: string }[] = [{ k: "both", l: t("modeBoth"), d: t("modeBothDesc"), c: C.text }, { k: "vPriority", l: t("modeVPri"), d: t("modeVPriDesc"), c: C.V }, { k: "vOnly", l: t("modeVOnly"), d: t("modeVOnlyDesc"), c: C.V }];
-  return (<Cd title={t("sortModeTitle")}><div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>{ms.map(m => (<button key={m.k} onClick={() => setMode(m.k)} style={{ background: mode === m.k ? (m.c === C.text ? "#ffffff12" : m.c + "18") : "transparent", border: `1.5px solid ${mode === m.k ? (m.c === C.text ? "#ffffff44" : m.c) : C.border}`, borderRadius: 6, padding: "8px 14px", cursor: "pointer", textAlign: "left", flex: "1 1 180px" }}><div style={{ fontSize: 13, fontWeight: 700, color: mode === m.k ? m.c : C.dim, fontFamily: mn, marginBottom: 3 }}>{m.l}</div><div style={{ fontSize: 10, color: mode === m.k ? C.label : C.hint, lineHeight: 1.4 }}>{m.d}</div></button>))}</div><p style={{ fontSize: 11, color: C.hint, lineHeight: 1.6, margin: 0 }}>{t("sortModeWhy")}</p></Cd>);
+  const ms: { k: SortMode; l: string; d: string; c: string; tp: string }[] = [{ k: "both", l: t("modeBoth"), d: t("modeBothDesc"), c: C.text, tp: t("tipModeBoth") }, { k: "vPriority", l: t("modeVPri"), d: t("modeVPriDesc"), c: C.V, tp: t("tipModeVPri") }, { k: "vOnly", l: t("modeVOnly"), d: t("modeVOnlyDesc"), c: C.V, tp: t("tipModeVOnly") }];
+  return (<Cd title={t("sortModeTitle")}><div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>{ms.map(m => (<button key={m.k} onClick={() => setMode(m.k)} title={m.tp} style={{ background: mode === m.k ? (m.c === C.text ? "#ffffff12" : m.c + "18") : "transparent", border: `1.5px solid ${mode === m.k ? (m.c === C.text ? "#ffffff44" : m.c) : C.border}`, borderRadius: 6, padding: "8px 14px", cursor: "pointer", textAlign: "left", flex: "1 1 180px" }}><div style={{ fontSize: 13, fontWeight: 700, color: mode === m.k ? m.c : C.dim, fontFamily: mn, marginBottom: 3 }}>{m.l}</div><div style={{ fontSize: 10, color: mode === m.k ? C.label : C.hint, lineHeight: 1.4 }}>{m.d}</div></button>))}</div><p style={{ fontSize: 11, color: C.hint, lineHeight: 1.6, margin: 0 }}>{t("sortModeWhy")}</p></Cd>);
 }
 
 function Explain({ sorted, mode, t }: { sorted: RowResult[]; mode: SortMode; t: (k: string) => string }) {
@@ -250,6 +277,7 @@ function Explain({ sorted, mode, t }: { sorted: RowResult[]; mode: SortMode; t: 
 export default function App() {
   const [lang, setLang] = useState(() => { if (_hp.lang && T[_hp.lang]) return _hp.lang; try { return localStorage.getItem(LANG_KEY) || "en"; } catch { return "en"; } });
   const t = (k: string) => T[lang]?.[k] ?? T.en[k] ?? k;
+  const tip = t;
   const cl = (l: string) => { setLang(l); try { localStorage.setItem(LANG_KEY, l); } catch {} };
   const [dI, setDI] = useState(() => { const v = Number(_hp.det); return v >= 0 && v < DETECTOR_PRESETS.length ? v : 3; });
   const [dpI, setDpI] = useState(() => { const v = Number(_hp.disp); return v >= 0 && v < DISPLAY_PRESETS.length ? v : 1; });
@@ -259,6 +287,7 @@ export default function App() {
   const [sm, setSm] = useState<SortMode>(() => (["both", "vPriority", "vOnly"] as SortMode[]).includes(_hp.mode as SortMode) ? _hp.mode as SortMode : "both");
   const [copied, setCopied] = useState(false);
   const [compared, setCompared] = useState<number[]>([]);
+  const [expanded, setExpanded] = useState<number | null>(null);
   useEffect(() => { window.location.hash = `det=${dI}&disp=${dpI}&pitch=${pI}&from=${fF}&to=${fT}&mode=${sm}&lang=${lang}`; }, [dI, dpI, pI, fF, fT, sm, lang]);
   const copyLink = () => { navigator.clipboard.writeText(window.location.href).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); };
   const det = DETECTOR_PRESETS[dI], disp = DISPLAY_PRESETS[dpI], pitch = PITCH_OPTIONS[pI];
@@ -277,7 +306,7 @@ export default function App() {
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.3</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.4</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
       </div>
       <p style={{ fontSize: 16, color: C.text, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720, fontWeight: 500 }}>{t("subtitle")}</p>
 
@@ -315,7 +344,7 @@ export default function App() {
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden", marginBottom: 20 }}>
         <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
           <span style={sS}>{t("tableTitle")}</span><span style={{ fontSize: 11, color: C.hint }}>{sm === "both" ? t("modeBoth") : sm === "vPriority" ? t("modeVPri") : t("modeVOnly")} · {sorted.length} {t("tableCount")} {lo}–{hi}mm</span>
-        </div><div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 12 }}>
+        </div><div style={{ padding: "8px 16px", fontSize: 11, color: C.hint }}>{t("clickRowHint")}</div><div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 12 }}>
           <thead><tr style={{ borderBottom: `1px solid ${C.border}` }}>
             <TH w={30} /><TH align="center" tip={t("tipF")}>{t("colF")}</TH>
             <TH align="right" color={C.H} tip={t("tipPpmH")}>{t("colPpmH")}</TH><TH align="right" color={C.H} tip={t("tipErrH")}>{t("colErrH")}</TH>
@@ -323,8 +352,8 @@ export default function App() {
             <TH align="right" tip={t("tipWorst")}>{t("colWorst")}</TH>
             <TH align="right" tip={t("tipMmH")}>{t("colMmH")}</TH><TH align="right" tip={t("tipMmV")}>{t("colMmV")}</TH>
           </tr></thead>
-          <tbody>{sorted.map((r, i) => { const isT = top5.has(r.f); const sv = sm === "both" ? r.score : r.v.err; const isIdeal = r.h.err < 0.01 && r.v.err < 0.01; const cmpI = compared.indexOf(r.f); return (<tr key={r.f} onClick={() => setCompared(p => p.includes(r.f) ? p.filter(x => x !== r.f) : p.length < 9 ? [...p, r.f] : p)} style={{ borderBottom: `1px solid ${C.bg}`, background: isIdeal ? "#00ff8812" : isT ? sbg(sv) : "transparent", cursor: "pointer", borderLeft: cmpI >= 0 ? `3px solid ${CMP_COLORS[cmpI]}` : "3px solid transparent" }}>
-            <td style={td("center", 30)}>{isIdeal && <span style={{ fontSize: 16, color: "#00ff88", display: "inline-block", animation: "jackpot-pulse 2s ease-in-out infinite" }}>✦</span>}</td>
+          <tbody>{sorted.map((r, i) => { const isT = top5.has(r.f); const sv = sm === "both" ? r.score : r.v.err; const isIdeal = r.h.err < 0.01 && r.v.err < 0.01; const cmpI = compared.indexOf(r.f); const isExp = expanded === r.f; return (<Fragment key={r.f}><tr onClick={() => setExpanded(prev => prev === r.f ? null : r.f)} title={`F=${r.f}mm: H ${r.h.err.toFixed(2)}%, V ${r.v.err.toFixed(2)}%. ${tip("tipRowClick")}`} style={{ borderBottom: `1px solid ${C.bg}`, background: isIdeal ? "#00ff8812" : isT ? sbg(sv) : "transparent", cursor: "pointer", borderLeft: isExp ? `3px solid ${C.green}` : cmpI >= 0 ? `3px solid ${CMP_COLORS[cmpI]}` : "3px solid transparent" }}>
+            <td style={td("center", 30)}><span style={{ fontSize: 10, color: C.dim }}>{isExp ? "▾" : "▸"}</span>{isIdeal && <span style={{ fontSize: 16, color: "#00ff88", display: "inline-block", animation: "jackpot-pulse 2s ease-in-out infinite" }}>✦</span>}</td>
             <td style={{ ...td("center"), fontWeight: isT ? 700 : 400, color: isT ? "#fff" : C.text }}>{r.f}{i < 5 && <span style={{ fontSize: 9, color: C.green, marginLeft: 6, background: `${C.green}1a`, padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>#{i + 1}</span>}{isIdeal && <span style={{ fontSize: 9, color: "#00ff88", marginLeft: 6, background: "#00ff8833", padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>IDEAL</span>}</td>
             <td style={{ ...td("right"), color: sm === "vOnly" ? C.hint : C.H }}>{r.h.ppm.toFixed(3)}</td>
             <td style={{ ...td("right"), fontWeight: 600, color: sm === "vOnly" ? C.hint : sc(r.h.err) }}>{r.h.err.toFixed(2)}</td>
@@ -333,7 +362,27 @@ export default function App() {
             <td style={{ ...td("right"), fontWeight: 700, color: sc(sv), fontSize: 13 }}>{sv.toFixed(2)}</td>
             <td style={{ ...td("right"), color: C.dim }}>{r.h.mm100.toFixed(2)}</td>
             <td style={{ ...td("right"), color: C.dim }}>{r.v.mm100.toFixed(2)}</td>
-          </tr>); })}</tbody>
+          </tr>{isExp && <tr><td colSpan={9} style={{ padding: 16, background: "#0a0a0a" }}>
+            <div style={{ fontSize: 12, fontFamily: mn, color: C.dim, marginBottom: 12 }}>F = {r.f} mm — px/mrad <span style={{ color: C.H }}>H: {r.h.ppm.toFixed(3)}</span>, <span style={{ color: C.V }}>V: {r.v.ppm.toFixed(3)}</span> — err <span style={{ color: C.H }}>H: {r.h.err.toFixed(2)}%</span>, <span style={{ color: C.V }}>V: {r.v.err.toFixed(2)}%</span> — total: <span style={{ color: sc(sv) }}>{sv.toFixed(2)}%</span></div>
+            <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 12 }}>
+              <div style={{ flex: "1 1 300px" }}>
+                <div title={tip("tipPixelSize")} style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6, cursor: "help" }}>{t("pixelSize")}</div>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 11 }}>
+                  <thead><tr><th style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>{t("dist")}</th><th style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>H, mm</th><th style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>V, mm</th></tr></thead>
+                  <tbody>{DISTANCES.map(d => <tr key={d}><td style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td><td style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{(r.h.mm100 * d / 100).toFixed(2)}</td><td style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{(r.v.mm100 * d / 100).toFixed(2)}</td></tr>)}</tbody>
+                </table>
+              </div>
+              <div style={{ flex: "1 1 300px" }}>
+                <div title={tip("tipPosError")} style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6, cursor: "help" }}>{t("posError")}</div>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 11 }}>
+                  <thead><tr><th style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>{t("dist")}</th><th style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>H, mm</th><th style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>V, mm</th></tr></thead>
+                  <tbody>{DISTANCES.map(d => { const eh = r.h.err / 100 * d, ev = r.v.err / 100 * d; return <tr key={d}><td style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td><td title={`${eh.toFixed(1)} ${tip("tipPosCell")} ${d}m`} style={{ textAlign: "right", color: eh < 5 ? C.green : eh < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{eh.toFixed(1)}</td><td title={`${ev.toFixed(1)} ${tip("tipPosCell")} ${d}m`} style={{ textAlign: "right", color: ev < 5 ? C.green : ev < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{ev.toFixed(1)}</td></tr>; })}</tbody>
+                </table>
+              </div>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); setCompared(prev => prev.includes(r.f) ? prev.filter(x => x !== r.f) : prev.length < 9 ? [...prev, r.f] : prev); }} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4, padding: "6px 12px", fontSize: 11, color: C.dim, cursor: "pointer", fontFamily: mn, marginBottom: 12 }}>{compared.includes(r.f) ? t("removeCompare") : t("addCompare")}</button>
+            <div style={{ fontSize: 10, color: C.hint }}>{t("expandHint")}</div>
+          </td></tr>}</Fragment>); })}</tbody>
         </table></div>
       </div>
 
@@ -379,8 +428,9 @@ export default function App() {
                 </tr>; })}</tbody>
               </table>
             </div>
+            <div style={{ fontSize: 10, color: C.hint, marginTop: 8 }}>{t("expandHint")}</div>
           </div>); })}
-      </div><p style={{ fontSize: 11, color: C.hint, margin: "10px 0 0" }}>{t("compareHint")}</p></Cd>}
+      </div></Cd>}
 
       <Cd title={t("colDesc")}><div style={{ fontSize: 12, color: C.dim, lineHeight: 2 }}>
         <div><strong style={{ color: C.text }}>{t("colF")}</strong> — {t("descF")}</div>
