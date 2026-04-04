@@ -1,73 +1,72 @@
-# React + TypeScript + Vite
+# RIKA Lens Calculator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Калькулятор подбора объектива для тепловизионных прицелов.
 
-Currently, two official plugins are available:
+Находит фокусное расстояние, при котором 1 мрад точно укладывается в целое число пикселей микродисплея по обеим осям (H и V). Это устраняет «плавание» штрихов прицельной сетки, вызванное дробным округлением.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**Live:** https://shah1git.github.io/rika-lens-calc/
 
-## React Compiler
+## Стек
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Vite + React + TypeScript
+- Recharts (графики)
+- GitHub Pages (деплой через GitHub Actions)
+- Без CSS-фреймворков — inline styles + минимальный `global.css`
 
-## Expanding the ESLint configuration
+## Структура
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+  App.tsx       — единственный компонент: логика, UI, i18n
+  main.tsx      — точка входа
+  global.css    — reset + CSS-тултипы для таблицы
+index.html      — подключение JetBrains Mono, lang=ru
+vite.config.ts  — base: /rika-lens-calc/
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Разработка
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev     # dev-сервер
+npm run build   # сборка в dist/
 ```
+
+## Деплой
+
+Автоматический через `.github/workflows/deploy.yml` при пуше в `main`.
+
+## Функциональность
+
+- **Пресеты сенсоров:** 384x288, 640x480, 640x512, 1024x768, 1280x1024
+- **Пресеты дисплеев:** 640x480, 1024x768, 1280x1024, 1920x1080, 2560x2560
+- **Шаг пикселя:** 12, 15, 17, 25 µm
+- **Диапазон фокусных:** 5–200 мм, настраиваемый
+- **i18n:** RU / EN / ZH, переключатель флагами, сохранение в localStorage
+- **ExplainBlock:** объяснение формулы `max(H, V)` с живым примером из текущих данных
+- **findMultiples:** кратные фокусные для 0% ошибки по каждой оси
+- **График:** столбчатая диаграмма ошибок с цветовой кодировкой (зелёный < 1%, жёлтый < 5%, красный > 5%)
+- **Таблица:** сортировка по итоговой ошибке, топ-5 подсвечены
+
+## Версионирование
+
+Версия отображается в заголовке рядом с названием (`v2.1`, `v2.2`, ...).
+При каждом коммите версия инкрементируется:
+- **patch** (2.1 → 2.2) — баг-фиксы, мелкие правки
+- **minor** (2.x → 3.0) — новые блоки, фичи, существенные изменения
+
+## Changelog
+
+### v2.0
+- Добавлен `ExplainBlock` — блок «Как читать таблицу» с живым примером
+- Добавлена `findMultiples` — показ кратных фокусных для 0% ошибки по каждой оси
+- Колонка «Худш.» → «Итог.» с пояснением `max(H, V)`
+- Обновлены все i18n-ключи (ru/en/zh)
+- Добавлена метка версии в заголовок
+
+### v1.x (начальная разработка)
+- Базовый калькулятор с графиком и таблицей
+- Добавлен пресет дисплея 2560x2560
+- Нативные `title`-тултипы заменены на CSS-тултипы (`data-tip` + `::after`) — мгновенное появление при наведении
+- Валидация инпутов фокуса перенесена с `onChange` на `onBlur` — свободное редактирование, clamp при потере фокуса или Enter
+- CI: GitHub Pages deploy workflow

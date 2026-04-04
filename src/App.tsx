@@ -310,7 +310,7 @@ export default function App() {
       <div style={{ maxWidth: 1080, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
           <RikaLogo />
-          <h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: "'JetBrains Mono', monospace" }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v2.0</span></h1>
+          <h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: "'JetBrains Mono', monospace" }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v2.1</span></h1>
           <LangSwitcher lang={lang} setLang={changeLang} />
         </div>
         <p style={{ fontSize: 13, color: C.dim, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720 }}>{t("subtitle")}</p>
