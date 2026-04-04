@@ -1,167 +1,142 @@
 import React, { useState, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
 
+interface Preset { label: string; w: number; h: number }
+interface AxisResult { ppm: number; err: number; mm100: number }
+interface RowResult { f: number; h: AxisResult; v: AxisResult; score: number }
+type SortMode = "both" | "vPriority" | "vOnly";
+
 const T: Record<string, Record<string, string>> = {
   ru: {
-    title: "Подбор объектива",
-    subtitle: "Поиск фокусного расстояния, при котором 1 мрад точно укладывается в целое число пикселей микродисплея по обеим осям",
+    title: "Подбор объектива", subtitle: "Поиск фокусного расстояния, при котором 1 мрад точно укладывается в целое число пикселей микродисплея",
     params: "Параметры оптической системы",
-    detector: "Сенсор (детектор)",
-    detectorHint: "Разрешение ИК-матрицы, пикс. Количество светочувствительных элементов по ширине × высоте. Определяет, сколько точек «видит» объектив.",
-    pitch: "Шаг пикселя сенсора",
-    pitchHint: "Физический размер одного пикселя ИК-матрицы в микрометрах. 12 мкм — современные, 17 мкм — стандартные, 25 мкм — устаревшие матрицы.",
-    display: "Микродисплей (окуляр)",
-    displayHint: "Разрешение OLED/LCD экрана в окуляре, на который выводится изображение с сенсора. Сетка рисуется на этих пикселях.",
-    focalFrom: "Фокус от, мм", focalFromHint: "Начало диапазона поиска объектива.",
-    focalTo: "Фокус до, мм", focalToHint: "Конец диапазона. Проверяется каждый мм.",
+    detector: "Сенсор (детектор)", detectorHint: "Разрешение ИК-матрицы. Ширина × высота.",
+    pitch: "Шаг пикселя", pitchHint: "Размер пикселя в мкм. 12 — совр., 17 — стандарт, 25 — устар.",
+    display: "Микродисплей", displayHint: "Разрешение OLED/LCD в окуляре.",
+    focalFrom: "Фокус от, мм", focalFromHint: "Начало диапазона.", focalTo: "Фокус до, мм", focalToHint: "Конец. Шаг 1 мм.",
     computed: "Как работает оптическая система",
-    scaleH: "Масштаб H", scaleV: "Масштаб V",
-    scaleExplain: "Отношение разрешения сенсора к разрешению дисплея. Показывает, сколько пикселей сенсора приходится на один пиксель дисплея. Если < 1 — изображение растягивается (дисплей крупнее сенсора). Безразмерная величина.",
-    effH: "Эфф. шаг H", effV: "Эфф. шаг V",
-    effExplain: "Масштаб × шаг пикселя сенсора. Показывает, какому физическому размеру в фокальной плоскости соответствует один пиксель дисплея. Единица: мкм. Ключевое число: если фокусное расстояние (в мм) кратно этому значению — ошибка = 0%.",
-    multiplesH: "Кратные для 0% по H:", multiplesV: "Кратные для 0% по V:", multiplesNone: "нет целых кратных в диапазоне",
-    aspectOk: "Аспекты совпадают — оси H и V считаются одинаково",
-    aspectWarn: "Аспекты разные — ошибки по H и V будут отличаться",
-    formulas: "Формулы расчёта",
-    fMradPx: "мрад/px — угловой размер одного пикселя дисплея в миллирадианах",
-    fPxMrad: "px/мрад — сколько пикселей дисплея укладывается в 1 мрад. Цель: целое число",
-    fError: "ошибка — отклонение px/мрад от ближайшего целого, в процентах",
-    fMm100: "мм/100м — линейный размер 1 пикселя дисплея на дистанции 100 метров",
-    fGoal: "Цель: найти F, при котором px/мрад ≈ целое. Тогда штрихи сетки точно ложатся в пиксели.",
-    chartTitle: "Ошибка округления — итоговая (макс. из H и V)",
-    good: "< 1% — идеально", ok: "< 5% — допустимо", bad: "> 5% — заметное плавание штрихов",
-    explainTitle: "Как читать таблицу ниже",
-    explainIntro: "Для каждого фокусного расстояния считаются ДВЕ ошибки — по горизонтали (H) и по вертикали (V). Сетка ровная только когда обе оси одновременно дают малую ошибку. Поэтому итоговая оценка — это максимум из двух:",
-    explainFormula: "Итоговая ошибка = max(Ошибка H, Ошибка V)",
-    explainExample: "Пример из текущих данных:",
-    explainBecause: "стоит выше, потому что обе оси плохи лишь чуть-чуть, тогда как у",
-    explainZeroButBad: "одна ось идеальна, но вторая тянет итог вниз.",
-    explainSort: "Таблица отсортирована по итоговой ошибке от меньшей к большей. Сверху — фокусные, при которых обе оси одновременно дают наименьшую ошибку. Это лучший компромисс для данной пары сенсор + дисплей.",
-    tableTitle: "Результаты — сортировка по итоговой ошибке ↑",
-    tableCount: "фокусных в диапазоне",
+    scaleH: "Масштаб H", scaleV: "Масштаб V", scaleExplain: "Сенсор ÷ дисплей. Если < 1 — растягивается.",
+    effH: "Эфф. шаг H", effV: "Эфф. шаг V", effExplain: "Масштаб × шаг. Если F кратно этому — ошибка 0%.",
+    multiplesH: "Кратные для 0% по H:", multiplesV: "Кратные для 0% по V:", multiplesNone: "нет в диапазоне",
+    aspectOk: "Аспекты совпадают", aspectWarn: "Аспекты разные — H и V отличаются",
+    formulas: "Формулы",
+    fMradPx: "мрад/px — угловой размер пикселя", fPxMrad: "px/мрад — пикселей на 1 мрад. Цель: целое",
+    fError: "ошибка — отклонение от целого, %", fMm100: "мм/100м — размер пикселя на 100 м",
+    fGoal: "Цель: px/мрад ≈ целое → штрихи точно на пикселях.",
+    sortModeTitle: "Приоритет осей",
+    modeBoth: "Обе оси равны", modeBothDesc: "Итоговая = max(H, V). Обе оси одинаково важны.",
+    modeVPri: "Приоритет V", modeVPriDesc: "Сначала по V, затем по H. Вертикаль важнее — holdover и mil-ranging.",
+    modeVOnly: "Только V", modeVOnlyDesc: "Итоговая = V. Горизонталь не участвует — ветровая поправка приблизительна.",
+    sortModeWhy: "Почему вертикаль может быть важнее? Вертикальные деления используются для точных баллистических поправок (holdover) и определения дистанции (mil-ranging) — ошибка идёт прямо в промах по высоте. Горизонталь — поправка на ветер, которая сама по себе приблизительна.",
+    chartTitle: "Итоговая ошибка округления",
+    good: "< 1% идеально", ok: "< 5% допустимо", bad: "> 5% плавание",
+    explainTitle: "Как читать таблицу",
+    explainBoth: "Для каждого F считаются ДВЕ ошибки — H и V. Сетка ровная когда обе малые. Итоговая = max(H, V).",
+    explainVPri: "Сортировка по ошибке V (вертикаль). При равных V — лучший H побеждает.",
+    explainVOnly: "Учитывается только ошибка V. Горизонталь показана, но не влияет на рейтинг.",
+    explainFormulaBoth: "Итоговая ошибка = max(Ош. H, Ош. V)",
+    explainFormulaVPri: "Сортировка: сначала Ош. V ↑, затем Ош. H ↑",
+    explainFormulaVOnly: "Итоговая ошибка = Ош. V",
+    explainExample: "Пример:", explainSort: "Таблица отсортирована по итоговой ошибке.",
+    tableTitle: "Результаты — по итоговой ошибке ↑", tableCount: "в диапазоне",
     colF: "F, мм", colPpmH: "px/мрад H", colErrH: "Ош. H %", colPpmV: "px/мрад V", colErrV: "Ош. V %",
     colWorst: "Итог. %", colMmH: "мм/100м H", colMmV: "мм/100м V",
-    tipF: "Фокусное расстояние объектива в мм. Чем больше — тем уже поле зрения и крупнее изображение.",
-    tipPpmH: "Пикселей дисплея на 1 мрад по горизонтали. Идеально: целое число.",
-    tipErrH: "Ошибка округления по горизонтали. 0% = идеальное попадание.",
-    tipPpmV: "Пикселей дисплея на 1 мрад по вертикали.", tipErrV: "Ошибка округления по вертикали.",
-    tipWorst: "Итоговая ошибка = max(H, V). Сетка ровная только когда обе оси дают малую ошибку.",
-    tipMmH: "Линейный размер 1 пикселя на 100 м по горизонтали.", tipMmV: "Линейный размер 1 пикселя на 100 м по вертикали.",
+    tipF: "Фокусное расстояние, мм.", tipPpmH: "Пикселей/мрад H.", tipErrH: "Ошибка H.",
+    tipPpmV: "Пикселей/мрад V.", tipErrV: "Ошибка V.", tipWorst: "Итоговая — зависит от режима.",
+    tipMmH: "Размер px на 100 м H.", tipMmV: "Размер px на 100 м V.",
     colDesc: "Описание колонок",
-    descF: "Фокусное расстояние объектива в миллиметрах. Определяет угловое поле зрения и масштаб изображения на сенсоре.",
-    descPpmH: "Количество пикселей дисплея на 1 миллирадиан по горизонтали. Идеально когда = целое число.",
-    descErrH: "На сколько процентов px/мрад по горизонтали отличается от ближайшего целого.",
-    descPpmV: "Аналогично px/мрад, но по вертикали. Отличается от H, если аспект сенсора ≠ аспекту дисплея.",
-    descErrV: "Ошибка округления по вертикали.",
-    descWorst: "Итоговая ошибка = max(H, V). Сетка ровная только если обе оси дают малую ошибку. Именно по этой колонке таблица отсортирована.",
-    descMm: "Линейный размер 1 пикселя дисплея на 100 м. Чем меньше — тем выше угловая точность.",
+    descF: "Фокусное расстояние (мм).", descPpmH: "Пикселей на 1 мрад H.", descErrH: "Отклонение от целого H.",
+    descPpmV: "То же V.", descErrV: "Отклонение V.", descWorst: "Итоговая. Зависит от режима. Отсортировано по ней.",
+    descMm: "Размер пикселя на 100 м.",
     whyTitle: "Почему это важно",
-    why1: "Прицельная сетка цифрового тепловизионного прицела рисуется на пикселях микродисплея. Каждый пиксель = фиксированный угловой размер. Если деление сетки в 1 мрад не ложится в целое число пикселей — возникает дробная часть, которую приходится округлять.",
-    why2: "Результат: штрихи «плавают» — одни шаги чуть шире, другие уже. На 100 м это незаметно, но на 500–1000 м ошибка округления даёт реальное отклонение точки попадания.",
-    why3: "Правильный подбор объектива под пару сенсор + дисплей устраняет проблему в корне: 1 мрад = ровно N пикселей, без дробной части.",
+    why1: "Сетка рисуется на пикселях. Если 1 мрад ≠ целое — штрихи «плавают».",
+    why2: "На 500–1000 м ошибка = реальное отклонение попадания.",
+    why3: "Правильный объектив: 1 мрад = ровно N пикселей.",
   },
   en: {
-    title: "Lens Selection", subtitle: "Find the focal length where 1 mrad maps to an exact integer number of display pixels on both axes",
-    params: "Optical System Parameters", detector: "Sensor (detector)", detectorHint: "IR sensor resolution, px. Width × height.",
-    pitch: "Sensor pixel pitch", pitchHint: "Physical pixel size in µm. 12 — modern, 17 — standard, 25 — legacy.",
-    display: "Microdisplay (eyepiece)", displayHint: "OLED/LCD resolution in the eyepiece. Reticle is drawn on these pixels.",
-    focalFrom: "Focal from, mm", focalFromHint: "Start of search range.", focalTo: "Focal to, mm", focalToHint: "End of range. Every mm is checked.",
-    computed: "How the optical system works", scaleH: "Scale H", scaleV: "Scale V",
-    scaleExplain: "Sensor res ÷ display res. How many sensor pixels per display pixel. If < 1, image is upscaled. Dimensionless.",
-    effH: "Eff. pitch H", effV: "Eff. pitch V",
-    effExplain: "Scale × pixel pitch. Physical size per display pixel in focal plane. Unit: µm. Key: focal length (mm) that is a multiple of this = 0% error.",
-    multiplesH: "Multiples for 0% on H:", multiplesV: "Multiples for 0% on V:", multiplesNone: "no integer multiples in range",
-    aspectOk: "Aspect ratios match — H and V are identical", aspectWarn: "Aspect ratios differ — H and V errors will differ",
-    formulas: "Formulas", fMradPx: "mrad/px — angular size of one display pixel", fPxMrad: "px/mrad — display pixels per 1 mrad. Goal: integer",
-    fError: "error — deviation from nearest integer, %", fMm100: "mm/100m — pixel size at 100 m distance",
-    fGoal: "Goal: find F where px/mrad ≈ integer. Then reticle marks land exactly on pixels.",
-    chartTitle: "Rounding error — overall (max of H and V)", good: "< 1% — ideal", ok: "< 5% — acceptable", bad: "> 5% — visible drift",
-    explainTitle: "How to read the table below",
-    explainIntro: "For each focal length, TWO errors are calculated — horizontal (H) and vertical (V). The reticle is crisp only when both axes have low error. So the overall score is the maximum of the two:",
-    explainFormula: "Overall error = max(Error H, Error V)", explainExample: "Example from current data:",
-    explainBecause: "ranks higher because both axes are only slightly off, while",
-    explainZeroButBad: "has one perfect axis but the other pulls the score down.",
-    explainSort: "The table is sorted by overall error, lowest first. Top entries are focal lengths where both axes simultaneously give the lowest error. This is the best compromise for this sensor + display pair.",
-    tableTitle: "Results — sorted by overall error ↑", tableCount: "focal lengths in range",
-    colF: "F, mm", colPpmH: "px/mrad H", colErrH: "Err H %", colPpmV: "px/mrad V", colErrV: "Err V %",
-    colWorst: "Overall %", colMmH: "mm/100m H", colMmV: "mm/100m V",
-    tipF: "Focal length in mm.", tipPpmH: "Display pixels per 1 mrad horizontally.", tipErrH: "Rounding error horizontally.",
-    tipPpmV: "Display pixels per 1 mrad vertically.", tipErrV: "Rounding error vertically.",
-    tipWorst: "Overall error = max(H, V). Reticle is crisp only when both axes have low error.",
-    tipMmH: "Pixel linear size at 100 m horizontally.", tipMmV: "Pixel linear size at 100 m vertically.",
-    colDesc: "Column descriptions", descF: "Focal length (mm). Determines FOV and image scale.",
-    descPpmH: "Display pixels per 1 mrad horizontally. Ideal = integer.", descErrH: "How far px/mrad deviates from nearest integer.",
-    descPpmV: "Same, vertically. Differs from H if aspects don't match.", descErrV: "Vertical rounding error.",
-    descWorst: "Overall = max(H, V). Table is sorted by this column.", descMm: "Linear size of 1 display pixel at 100 m.",
-    whyTitle: "Why this matters",
-    why1: "A digital thermal sight reticle is drawn on display pixels. If 1 mrad doesn't map to a whole number of pixels — rounding occurs.",
-    why2: "Result: marks 'float'. At 500–1000 m the error causes real point-of-impact shifts.",
-    why3: "Right lens for sensor + display eliminates this: 1 mrad = exactly N pixels.",
+    title: "Lens Selection", subtitle: "Find focal length where 1 mrad = integer display pixels",
+    params: "Optical Parameters", detector: "Sensor", detectorHint: "IR resolution.", pitch: "Pixel pitch", pitchHint: "µm.",
+    display: "Microdisplay", displayHint: "Eyepiece resolution.",
+    focalFrom: "Focal from", focalFromHint: "Start.", focalTo: "Focal to", focalToHint: "End. Step 1mm.",
+    computed: "How it works", scaleH: "Scale H", scaleV: "Scale V", scaleExplain: "Sensor÷display.",
+    effH: "Eff. pitch H", effV: "Eff. pitch V", effExplain: "Scale×pitch. F multiple of this = 0%.",
+    multiplesH: "0% H multiples:", multiplesV: "0% V multiples:", multiplesNone: "none in range",
+    aspectOk: "Aspects match", aspectWarn: "Aspects differ",
+    formulas: "Formulas", fMradPx: "mrad/px", fPxMrad: "px/mrad. Goal: integer", fError: "error %", fMm100: "mm/100m",
+    fGoal: "Goal: px/mrad ≈ integer.",
+    sortModeTitle: "Axis priority",
+    modeBoth: "Both equal", modeBothDesc: "Overall = max(H,V).",
+    modeVPri: "V priority", modeVPriDesc: "Sort by V first, then H. Vertical matters for holdover.",
+    modeVOnly: "V only", modeVOnlyDesc: "Overall = V. H ignored — wind is approximate.",
+    sortModeWhy: "Why vertical may matter more? Vertical marks are used for precise holdover and mil-ranging — error goes straight into elevation miss. Horizontal is wind, which is inherently approximate.",
+    chartTitle: "Overall rounding error", good: "<1% ideal", ok: "<5% ok", bad: ">5% drift",
+    explainTitle: "How to read the table",
+    explainBoth: "Two errors per F. Crisp when both low. Overall = max(H,V).",
+    explainVPri: "Sorted by V error. Equal V → better H wins.",
+    explainVOnly: "Only V matters. H shown but doesn't affect rank.",
+    explainFormulaBoth: "Overall = max(H, V)", explainFormulaVPri: "Sort: V↑, then H↑", explainFormulaVOnly: "Overall = V",
+    explainExample: "Example:", explainSort: "Sorted by overall error.",
+    tableTitle: "Results — overall error ↑", tableCount: "in range",
+    colF: "F,mm", colPpmH: "px/mrad H", colErrH: "Err H%", colPpmV: "px/mrad V", colErrV: "Err V%",
+    colWorst: "Overall%", colMmH: "mm/100m H", colMmV: "mm/100m V",
+    tipF: "Focal mm.", tipPpmH: "px/mrad H.", tipErrH: "H err.", tipPpmV: "px/mrad V.", tipErrV: "V err.",
+    tipWorst: "Overall — depends on mode.", tipMmH: "px size 100m H.", tipMmV: "px size 100m V.",
+    colDesc: "Columns", descF: "Focal length.", descPpmH: "px/mrad H.", descErrH: "H deviation.",
+    descPpmV: "Same V.", descErrV: "V deviation.", descWorst: "Overall. Sorted by this.", descMm: "Pixel size 100m.",
+    whyTitle: "Why it matters", why1: "Reticle on pixels. Non-integer = drift.", why2: "500-1000m = real miss.", why3: "Right lens: 1 mrad = N px.",
   },
   zh: {
-    title: "镜头选择", subtitle: "寻找焦距，使1毫弧度在两个轴上精确对应整数个显示像素",
-    params: "光学系统参数", detector: "传感器", detectorHint: "红外传感器分辨率。",
-    pitch: "像素间距", pitchHint: "像素物理尺寸（微米）。", display: "微显示器", displayHint: "目镜分辨率。",
-    focalFrom: "焦距起始", focalFromHint: "搜索起点。", focalTo: "焦距结束", focalToHint: "搜索终点。",
-    computed: "光学系统原理", scaleH: "缩放H", scaleV: "缩放V", scaleExplain: "传感器÷显示器分辨率。",
-    effH: "有效间距H", effV: "有效间距V", effExplain: "缩放比×像素间距。焦距是此值倍数时误差=0%。",
-    multiplesH: "H轴0%的倍数:", multiplesV: "V轴0%的倍数:", multiplesNone: "范围内无整数倍数",
-    aspectOk: "宽高比匹配", aspectWarn: "宽高比不同——误差不同",
-    formulas: "公式", fMradPx: "mrad/px", fPxMrad: "px/mrad 目标：整数", fError: "误差", fMm100: "mm/100m", fGoal: "目标：px/mrad≈整数。",
-    chartTitle: "舍入误差——综合（H和V最大值）", good: "<1%理想", ok: "<5%可接受", bad: ">5%明显漂移",
-    explainTitle: "如何阅读下表",
-    explainIntro: "每个焦距计算两个误差——水平(H)和垂直(V)。瞄准线只有两轴都小时才清晰。综合评分取两者最大值：",
-    explainFormula: "综合误差 = max(误差H, 误差V)", explainExample: "当前数据示例：",
-    explainBecause: "排名更高，因为两轴都只有小误差，而", explainZeroButBad: "虽有一轴完美，但另一轴拉低了评分。",
-    explainSort: "表格按综合误差从小到大排序。顶部是两轴同时给出最小误差的焦距。",
-    tableTitle: "结果——按综合误差排序↑", tableCount: "范围内焦距",
-    colF: "F,mm", colPpmH: "px/mrad H", colErrH: "误差H%", colPpmV: "px/mrad V", colErrV: "误差V%",
-    colWorst: "综合%", colMmH: "mm/100m H", colMmV: "mm/100m V",
-    tipF: "焦距", tipPpmH: "水平px/mrad", tipErrH: "水平误差", tipPpmV: "垂直px/mrad", tipErrV: "垂直误差",
-    tipWorst: "综合误差=max(H,V)", tipMmH: "100m处水平尺寸", tipMmV: "100m处垂直尺寸",
-    colDesc: "列说明", descF: "焦距(mm)。", descPpmH: "水平px/mrad。", descErrH: "水平误差%。",
-    descPpmV: "垂直px/mrad。", descErrV: "垂直误差。", descWorst: "max(H,V)。按此排序。", descMm: "100m处像素尺寸。",
-    whyTitle: "为什么重要", why1: "瞄准线绘制在像素上。不对齐就会舍入。", why2: "500-1000m时导致弹着点偏移。", why3: "选对镜头消除问题。",
+    title: "镜头选择", subtitle: "1mrad=整数像素",
+    params: "参数", detector: "传感器", detectorHint: "分辨率", pitch: "间距", pitchHint: "µm",
+    display: "显示器", displayHint: "目镜", focalFrom: "焦距起", focalFromHint: "", focalTo: "焦距止", focalToHint: "",
+    computed: "原理", scaleH: "缩放H", scaleV: "缩放V", scaleExplain: "传感器÷显示器",
+    effH: "间距H", effV: "间距V", effExplain: "倍数时=0%",
+    multiplesH: "H 0%:", multiplesV: "V 0%:", multiplesNone: "无",
+    aspectOk: "匹配", aspectWarn: "不匹配",
+    formulas: "公式", fMradPx: "mrad/px", fPxMrad: "px/mrad", fError: "误差", fMm100: "mm/100m", fGoal: "目标:整数",
+    sortModeTitle: "轴优先级", modeBoth: "两轴等", modeBothDesc: "max(H,V)", modeVPri: "V优先", modeVPriDesc: "先V后H",
+    modeVOnly: "仅V", modeVOnlyDesc: "仅V", sortModeWhy: "垂直用于弹道修正，更重要。",
+    chartTitle: "综合误差", good: "<1%", ok: "<5%", bad: ">5%",
+    explainTitle: "说明", explainBoth: "max(H,V)", explainVPri: "按V排序", explainVOnly: "仅V",
+    explainFormulaBoth: "max(H,V)", explainFormulaVPri: "V↑,H↑", explainFormulaVOnly: "=V",
+    explainExample: "示例:", explainSort: "按综合误差排序。",
+    tableTitle: "结果↑", tableCount: "范围内",
+    colF: "F", colPpmH: "H px/mr", colErrH: "H%", colPpmV: "V px/mr", colErrV: "V%",
+    colWorst: "综合%", colMmH: "H mm", colMmV: "V mm",
+    tipF: "", tipPpmH: "", tipErrH: "", tipPpmV: "", tipErrV: "", tipWorst: "", tipMmH: "", tipMmV: "",
+    colDesc: "列", descF: "", descPpmH: "", descErrH: "", descPpmV: "", descErrV: "", descWorst: "", descMm: "",
+    whyTitle: "原因", why1: "不对齐=舍入", why2: "远距偏移", why3: "选对镜头",
   },
 };
-
 const LANG_KEY = "rika-calc-lang";
-
-interface Preset { label: string; w: number; h: number }
-interface AxisResult { mpp: number; ppm: number; near: number; err: number; mm100: number; r: number }
-interface RowResult { f: number; h: AxisResult; v: AxisResult; worst: number }
-
-const DETECTOR_PRESETS: Preset[] = [
-  { label: "384×288", w: 384, h: 288 }, { label: "640×480", w: 640, h: 480 },
-  { label: "640×512", w: 640, h: 512 }, { label: "1024×768", w: 1024, h: 768 },
-  { label: "1280×1024", w: 1280, h: 1024 },
-];
-const DISPLAY_PRESETS: Preset[] = [
-  { label: "640×480", w: 640, h: 480 }, { label: "1024×768", w: 1024, h: 768 },
-  { label: "1280×1024", w: 1280, h: 1024 }, { label: "1920×1080", w: 1920, h: 1080 },
-  { label: "2560×2560", w: 2560, h: 2560 },
-];
+const DETECTOR_PRESETS: Preset[] = [{label:"384×288",w:384,h:288},{label:"640×480",w:640,h:480},{label:"640×512",w:640,h:512},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024}];
+const DISPLAY_PRESETS: Preset[] = [{label:"640×480",w:640,h:480},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024},{label:"1920×1080",w:1920,h:1080},{label:"2560×2560",w:2560,h:2560}];
 const PITCH_OPTIONS = [12, 15, 17, 25];
 
 function calcAxis(sR: number, dR: number, p: number, f: number): AxisResult {
-  const r = sR / dR; const mpp = (r * p) / f; const ppm = 1 / mpp;
-  const near = Math.round(ppm); const err = near > 0 ? (Math.abs(ppm - near) / ppm) * 100 : 100;
-  const mm100 = (r * p * 100) / f; return { mpp, ppm, near, err, mm100, r };
+  const r = sR / dR, ppm = f / (r * p), near = Math.round(ppm);
+  const err = near > 0 ? (Math.abs(ppm - near) / ppm) * 100 : 100;
+  return { ppm, err, mm100: (r * p * 100) / f };
 }
-function calcRow(det: Preset, disp: Preset, p: number, f: number): RowResult {
-  const h = calcAxis(det.w, disp.w, p, f); const v = calcAxis(det.h, disp.h, p, f);
-  return { f, h, v, worst: Math.max(h.err, v.err) };
+function getScore(h: AxisResult, v: AxisResult, mode: SortMode): number {
+  return mode === "both" ? Math.max(h.err, v.err) : v.err;
 }
-function findMultiples(effPitch: number, lo: number, hi: number): number[] {
-  const result: number[] = [];
-  for (let f = lo; f <= hi; f++) { if (Math.abs(f / effPitch - Math.round(f / effPitch)) < 0.0001) result.push(f); }
-  return result;
+function sortRows(rows: RowResult[], mode: SortMode): RowResult[] {
+  return [...rows].sort((a, b) => {
+    if (mode === "vPriority") { const d = a.v.err - b.v.err; if (Math.abs(d) > 0.001) return d; return a.h.err - b.h.err; }
+    return a.score - b.score;
+  });
+}
+function findMultiples(ep: number, lo: number, hi: number): number[] {
+  const r: number[] = [];
+  for (let f = lo; f <= hi; f++) if (Math.abs(f / ep - Math.round(f / ep)) < 0.0001) r.push(f);
+  return r;
 }
 
 const C = {
   bg: "#050505", card: "#0e0e0e", border: "#222", text: "#e8e8e8", dim: "#888", label: "#aaa", hint: "#666",
   green: "#00ff88", yellow: "#ffcc00", red: "#ff3344", H: "#00ccff", V: "#ff66ff",
-  explainBg: "#0c1a14", explainBorder: "#1a3a28",
+  xBg: "#0c1a14", xBrd: "#1a3a28",
 };
 function sc(p: number) { return p < 1 ? C.green : p < 5 ? C.yellow : C.red; }
 function sbg(p: number) { return p < 1 ? "#00ff8810" : p < 5 ? "#ffcc0008" : "transparent"; }
@@ -177,34 +152,24 @@ function RikaLogo() {
   );
 }
 
-const flagS: React.CSSProperties = { height: 16, width: 24, borderRadius: 2, display: "block" };
-function FlagRU() { return (<svg viewBox="0 0 60 40" style={flagS}><rect width="60" height="13.33" fill="#FFF"/><rect y="13.33" width="60" height="13.34" fill="#0039A6"/><rect y="26.67" width="60" height="13.33" fill="#D52B1E"/></svg>); }
-function FlagEN() { return (<svg viewBox="0 0 60 40" style={flagS}><rect width="60" height="40" fill="#FFF"/><text x="30" y="21" textAnchor="middle" dominantBaseline="central" fill="#000" fontSize="18" fontWeight="bold" fontFamily="sans-serif">EN</text></svg>); }
-function FlagCN() { return (<svg viewBox="0 0 60 40" style={flagS}><rect width="60" height="40" fill="#DE2910"/><g fill="#FFDE00"><polygon points="10,4 11.2,7.6 15,7.6 12,9.8 13,13.4 10,11 7,13.4 8,9.8 5,7.6 8.8,7.6"/></g></svg>); }
-
-function LangSwitcher({ lang, setLang }: { lang: string; setLang: (l: string) => void }) {
-  const langs = [{ code: "en", Flag: FlagEN }, { code: "ru", Flag: FlagRU }, { code: "zh", Flag: FlagCN }];
-  return (<div style={{ display: "flex", gap: 4 }}>{langs.map(({ code, Flag }) => (
-    <button key={code} onClick={() => setLang(code)} style={{
-      background: lang === code ? "#ffffff18" : "transparent", border: lang === code ? "1px solid #ffffff33" : "1px solid transparent",
-      borderRadius: 4, padding: "3px 5px", cursor: "pointer", lineHeight: 0, opacity: lang === code ? 1 : 0.5,
-    }}><Flag /></button>
+const fS: React.CSSProperties = { height: 16, width: 24, borderRadius: 2, display: "block" };
+function FlagRU() { return (<svg viewBox="0 0 60 40" style={fS}><rect width="60" height="13.33" fill="#FFF"/><rect y="13.33" width="60" height="13.34" fill="#0039A6"/><rect y="26.67" width="60" height="13.33" fill="#D52B1E"/></svg>); }
+function FlagEN() { return (<svg viewBox="0 0 60 40" style={fS}><rect width="60" height="40" fill="#FFF"/><text x="30" y="21" textAnchor="middle" dominantBaseline="central" fill="#000" fontSize="18" fontWeight="bold" fontFamily="sans-serif">EN</text></svg>); }
+function FlagCN() { return (<svg viewBox="0 0 60 40" style={fS}><rect width="60" height="40" fill="#DE2910"/><g fill="#FFDE00"><polygon points="10,4 11.2,7.6 15,7.6 12,9.8 13,13.4 10,11 7,13.4 8,9.8 5,7.6 8.8,7.6"/></g></svg>); }
+function LangSw({ lang, setLang }: { lang: string; setLang: (l: string) => void }) {
+  const ls = [{ c: "en", F: FlagEN }, { c: "ru", F: FlagRU }, { c: "zh", F: FlagCN }];
+  return (<div style={{ display: "flex", gap: 4 }}>{ls.map(({ c, F }) => (
+    <button key={c} onClick={() => setLang(c)} style={{ background: lang === c ? "#ffffff18" : "transparent", border: lang === c ? "1px solid #ffffff33" : "1px solid transparent", borderRadius: 4, padding: "3px 5px", cursor: "pointer", lineHeight: 0, opacity: lang === c ? 1 : 0.5 }}><F /></button>
   ))}</div>);
 }
 
-function ParamBlock({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
-  return (<div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 140, flex: "1 1 140px" }}>
-    <label style={{ fontSize: 11, color: C.label, fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
-    {children}
-    <span style={{ fontSize: 10, color: C.hint, lineHeight: 1.5, maxWidth: 220 }}>{hint}</span>
-  </div>);
-}
-function Sel({ value, onChange, options, render }: { value: number; onChange: (v: number) => void; options: any[]; render: (o: any) => string }) {
-  return (<select value={value} onChange={e => onChange(Number(e.target.value))} style={inpS}>
-    {options.map((o: any, i: number) => <option key={i} value={i}>{render(o)}</option>)}
-  </select>);
-}
-function Num({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
+const mn = "'JetBrains Mono', monospace";
+const sS: React.CSSProperties = { fontSize: 11, color: C.label, marginBottom: 14, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.1em" };
+const iS: React.CSSProperties = { background: "#080808", color: "#e8e8e8", border: `1px solid ${C.border}`, borderRadius: 4, padding: "8px 12px", fontSize: 14, fontFamily: mn, cursor: "pointer", outline: "none" };
+function td(a: string, w?: number): React.CSSProperties { return { padding: "7px 10px", textAlign: a as any, color: C.text, whiteSpace: "nowrap", ...(w ? { width: w } : {}) }; }
+function PB({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) { return (<div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 140, flex: "1 1 140px" }}><label style={{ fontSize: 11, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>{children}<span style={{ fontSize: 10, color: C.hint, lineHeight: 1.5, maxWidth: 220 }}>{hint}</span></div>); }
+function Sel({ value, onChange, options, render }: { value: number; onChange: (v: number) => void; options: any[]; render: (o: any) => string }) { return (<select value={value} onChange={e => onChange(Number(e.target.value))} style={iS}>{options.map((o: any, i: number) => <option key={i} value={i}>{render(o)}</option>)}</select>); }
+function Nm({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
   const [draft, setDraft] = useState<string>(String(value));
   const committed = React.useRef(value);
   if (value !== committed.current) { committed.current = value; setDraft(String(value)); }
@@ -212,229 +177,140 @@ function Num({ value, onChange, min, max }: { value: number; onChange: (v: numbe
     onChange={e => setDraft(e.target.value)}
     onBlur={() => { const n = Math.max(min, Math.min(max, Number(draft) || min)); committed.current = n; setDraft(String(n)); onChange(n); }}
     onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-    style={{ ...inpS, width: 90 }} />;
+    style={{ ...iS, width: 90 }} />;
 }
-function Card({ title, children, style: s }: { title?: string; children: React.ReactNode; style?: React.CSSProperties }) {
-  return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px 20px", marginBottom: 20, ...s }}>
-    {title && <div style={secTitleS}>{title}</div>}{children}
-  </div>);
-}
-function TH({ children, align, w, color, tip }: { children?: React.ReactNode; align?: string; w?: number; color?: string; tip?: string }) {
-  return (<th data-tip={tip || undefined} style={{
-    padding: "10px 10px", textAlign: (align || "left") as any, width: w, fontSize: 10, color: color || C.dim,
-    fontWeight: 600, whiteSpace: "nowrap", fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase",
-    letterSpacing: "0.04em", cursor: tip ? "help" : "default",
-  }}>{children}</th>);
+function Cd({ title, children }: { title?: string; children: React.ReactNode }) { return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>{title && <div style={sS}>{title}</div>}{children}</div>); }
+function TH({ children, align, w, color, tip }: { children?: React.ReactNode; align?: string; w?: number; color?: string; tip?: string }) { return (<th data-tip={tip || undefined} style={{ padding: "10px", textAlign: (align || "left") as any, width: w, fontSize: 10, color: color || C.dim, fontWeight: 600, whiteSpace: "nowrap", fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.04em", cursor: tip ? "help" : "default" }}>{children}</th>); }
+const CTip = ({ active, payload }: any) => { if (!active || !payload?.length) return null; const d = payload[0]?.payload; if (!d) return null; return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", fontFamily: mn, fontSize: 11, color: C.text, lineHeight: 1.8 }}><div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>F={d.f}mm</div><div><span style={{ color: C.H }}>H:</span> {d.eH.toFixed(2)}%</div><div><span style={{ color: C.V }}>V:</span> {d.eV.toFixed(2)}%</div></div>); };
+
+function SortMode({ mode, setMode, t }: { mode: SortMode; setMode: (m: SortMode) => void; t: (k: string) => string }) {
+  const ms: { k: SortMode; l: string; d: string; c: string }[] = [{ k: "both", l: t("modeBoth"), d: t("modeBothDesc"), c: C.text }, { k: "vPriority", l: t("modeVPri"), d: t("modeVPriDesc"), c: C.V }, { k: "vOnly", l: t("modeVOnly"), d: t("modeVOnlyDesc"), c: C.V }];
+  return (<Cd title={t("sortModeTitle")}><div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>{ms.map(m => (<button key={m.k} onClick={() => setMode(m.k)} style={{ background: mode === m.k ? (m.c === C.text ? "#ffffff12" : m.c + "18") : "transparent", border: `1.5px solid ${mode === m.k ? (m.c === C.text ? "#ffffff44" : m.c) : C.border}`, borderRadius: 6, padding: "8px 14px", cursor: "pointer", textAlign: "left", flex: "1 1 180px" }}><div style={{ fontSize: 13, fontWeight: 700, color: mode === m.k ? m.c : C.dim, fontFamily: mn, marginBottom: 3 }}>{m.l}</div><div style={{ fontSize: 10, color: mode === m.k ? C.label : C.hint, lineHeight: 1.4 }}>{m.d}</div></button>))}</div><p style={{ fontSize: 11, color: C.hint, lineHeight: 1.6, margin: 0 }}>{t("sortModeWhy")}</p></Cd>);
 }
 
-const secTitleS: React.CSSProperties = { fontSize: 11, color: C.label, marginBottom: 14, fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase", letterSpacing: "0.1em" };
-const inpS: React.CSSProperties = { background: "#080808", color: "#e8e8e8", border: `1px solid ${C.border}`, borderRadius: 4, padding: "8px 12px", fontSize: 14, fontFamily: "'JetBrains Mono', monospace", cursor: "pointer", outline: "none" };
-function td(a: string, w?: number): React.CSSProperties { return { padding: "7px 10px", textAlign: (a || "left") as any, color: C.text, whiteSpace: "nowrap", ...(w ? { width: w } : {}) }; }
-
-const ChartTip = ({ active, payload }: any) => {
-  if (!active || !payload?.length) return null;
-  const d = payload[0]?.payload; if (!d) return null;
-  return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: C.text, lineHeight: 1.8 }}>
-    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>F = {d.f} mm</div>
-    <div><span style={{ color: C.H }}>H:</span> {d.eH.toFixed(2)}% — {d.pH.toFixed(3)} px/mrad</div>
-    <div><span style={{ color: C.V }}>V:</span> {d.eV.toFixed(2)}% — {d.pV.toFixed(3)} px/mrad</div>
-    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 4, paddingTop: 4 }}>
-      Max: <span style={{ color: sc(d.w), fontWeight: 700 }}>{d.w.toFixed(2)}%</span></div>
-  </div>);
-};
-
-function ExplainBlock({ sorted, t }: { sorted: RowResult[]; t: (k: string) => string }) {
-  const top1 = sorted[0]; if (!top1) return null;
-  const zeroOnOne = sorted.find(r => r.f !== top1.f && (r.h.err < 0.01 || r.v.err < 0.01) && r.worst > top1.worst);
-  const contrast = zeroOnOne || (sorted.length > 5 ? sorted[5] : sorted[sorted.length - 1]);
-  const mono: React.CSSProperties = { fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 };
-  return (
-    <div style={{ background: C.explainBg, border: `1px solid ${C.explainBorder}`, borderRadius: 8, padding: "16px 20px", marginBottom: 20 }}>
-      <div style={{ ...secTitleS, color: C.green, marginBottom: 12 }}>{t("explainTitle")}</div>
-      <p style={{ fontSize: 13, color: C.dim, lineHeight: 1.7, margin: "0 0 12px" }}>{t("explainIntro")}</p>
-      <div style={{ background: "#081210", borderRadius: 6, padding: "10px 16px", marginBottom: 14, fontFamily: "'JetBrains Mono', monospace", fontSize: 14, color: C.green, textAlign: "center" }}>
-        {t("explainFormula")}
+function Explain({ sorted, mode, t }: { sorted: RowResult[]; mode: SortMode; t: (k: string) => string }) {
+  const t1 = sorted[0]; if (!t1 || sorted.length < 2) return null;
+  const c2 = sorted.length > 5 ? sorted[5] : sorted[sorted.length - 1];
+  const txt = mode === "both" ? t("explainBoth") : mode === "vPriority" ? t("explainVPri") : t("explainVOnly");
+  const frm = mode === "both" ? t("explainFormulaBoth") : mode === "vPriority" ? t("explainFormulaVPri") : t("explainFormulaVOnly");
+  function sl(r: RowResult) { if (mode === "both") return `max(${r.h.err.toFixed(2)}, ${r.v.err.toFixed(2)}) = ${r.score.toFixed(2)}%`; if (mode === "vOnly") return `V = ${r.v.err.toFixed(2)}%`; return `V=${r.v.err.toFixed(2)}% H=${r.h.err.toFixed(2)}%`; }
+  const ms: React.CSSProperties = { fontFamily: mn, fontWeight: 700 };
+  return (<div style={{ background: C.xBg, border: `1px solid ${C.xBrd}`, borderRadius: 8, padding: "16px 20px", marginBottom: 20 }}>
+    <div style={{ ...sS, color: C.green, marginBottom: 12 }}>{t("explainTitle")}</div>
+    <p style={{ fontSize: 13, color: C.dim, lineHeight: 1.7, margin: "0 0 12px" }}>{txt}</p>
+    <div style={{ background: "#081210", borderRadius: 6, padding: "10px 16px", marginBottom: 14, fontFamily: mn, fontSize: 14, color: C.green, textAlign: "center" }}>{frm}</div>
+    <div style={{ fontSize: 12, color: C.label, marginBottom: 6 }}>{t("explainExample")}</div>
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+      <div style={{ flex: "1 1 280px", background: "#081a10", border: `1px solid ${C.green}33`, borderRadius: 6, padding: "10px 14px" }}>
+        <div style={{ fontSize: 13, color: C.green, ...ms, marginBottom: 4 }}>F={t1.f}мм → #1</div>
+        <div style={{ fontSize: 12, color: C.dim, fontFamily: mn }}><span style={{ color: C.H }}>H:{t1.h.err.toFixed(2)}%</span> <span style={{ color: C.V }}>V:{t1.v.err.toFixed(2)}%</span></div>
+        <div style={{ fontSize: 11, color: C.green, fontFamily: mn, marginTop: 4 }}>{sl(t1)}</div>
       </div>
-      <div style={{ fontSize: 12, color: C.label, marginBottom: 6 }}>{t("explainExample")}</div>
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
-        <div style={{ flex: "1 1 280px", background: "#081a10", border: `1px solid ${C.green}33`, borderRadius: 6, padding: "10px 14px" }}>
-          <div style={{ fontSize: 13, color: C.green, ...mono, marginBottom: 6 }}>F = {top1.f} мм → #{sorted.indexOf(top1) + 1}</div>
-          <div style={{ fontSize: 12, color: C.dim, lineHeight: 1.8, fontFamily: "'JetBrains Mono', monospace" }}>
-            <span style={{ color: C.H }}>H: {top1.h.err.toFixed(2)}%</span>{" "}
-            <span style={{ color: C.V }}>V: {top1.v.err.toFixed(2)}%</span>{" → "}
-            <span style={{ color: C.green }}>max = {top1.worst.toFixed(2)}%</span>
-          </div>
-        </div>
-        {contrast && (
-          <div style={{ flex: "1 1 280px", background: "#1a1408", border: `1px solid ${C.yellow}33`, borderRadius: 6, padding: "10px 14px" }}>
-            <div style={{ fontSize: 13, color: C.yellow, ...mono, marginBottom: 6 }}>F = {contrast.f} мм → #{sorted.indexOf(contrast) + 1}</div>
-            <div style={{ fontSize: 12, color: C.dim, lineHeight: 1.8, fontFamily: "'JetBrains Mono', monospace" }}>
-              <span style={{ color: C.H }}>H: {contrast.h.err.toFixed(2)}%</span>{" "}
-              <span style={{ color: C.V }}>V: {contrast.v.err.toFixed(2)}%</span>{" → "}
-              <span style={{ color: C.yellow }}>max = {contrast.worst.toFixed(2)}%</span>
-            </div>
-          </div>
-        )}
+      <div style={{ flex: "1 1 280px", background: "#1a1408", border: `1px solid ${C.yellow}33`, borderRadius: 6, padding: "10px 14px" }}>
+        <div style={{ fontSize: 13, color: C.yellow, ...ms, marginBottom: 4 }}>F={c2.f}мм → #{sorted.indexOf(c2) + 1}</div>
+        <div style={{ fontSize: 12, color: C.dim, fontFamily: mn }}><span style={{ color: C.H }}>H:{c2.h.err.toFixed(2)}%</span> <span style={{ color: C.V }}>V:{c2.v.err.toFixed(2)}%</span></div>
+        <div style={{ fontSize: 11, color: C.yellow, fontFamily: mn, marginTop: 4 }}>{sl(c2)}</div>
       </div>
-      {contrast && (
-        <p style={{ fontSize: 12, color: C.dim, lineHeight: 1.6, margin: "0 0 12px" }}>
-          <span style={{ color: C.green, ...mono }}>F={top1.f}</span>{" "}{t("explainBecause")}{" "}
-          <span style={{ color: C.yellow, ...mono }}>F={contrast.f}</span>{" "}{t("explainZeroButBad")}
-        </p>
-      )}
-      <p style={{ fontSize: 12, color: C.label, lineHeight: 1.6, margin: 0, borderTop: `1px solid ${C.explainBorder}`, paddingTop: 10 }}>
-        {t("explainSort")}
-      </p>
     </div>
-  );
+    <p style={{ fontSize: 12, color: C.label, lineHeight: 1.6, margin: 0, borderTop: `1px solid ${C.xBrd}`, paddingTop: 10 }}>{t("explainSort")}</p>
+  </div>);
 }
 
 export default function App() {
   const [lang, setLang] = useState(() => { try { return localStorage.getItem(LANG_KEY) || "en"; } catch { return "en"; } });
   const t = (k: string) => T[lang]?.[k] ?? T.en[k] ?? k;
-  const changeLang = (l: string) => { setLang(l); try { localStorage.setItem(LANG_KEY, l); } catch {} };
-  const [detIdx, setDetIdx] = useState(2); const [dispIdx, setDispIdx] = useState(1);
-  const [pitchIdx, setPitchIdx] = useState(0); const [fFrom, setFFrom] = useState(20); const [fTo, setFTo] = useState(75);
-  const det = DETECTOR_PRESETS[detIdx], disp = DISPLAY_PRESETS[dispIdx], pitch = PITCH_OPTIONS[pitchIdx];
-  const lo = Math.min(fFrom, fTo), hi = Math.max(fFrom, fTo);
-  const results = useMemo(() => Array.from({ length: hi - lo + 1 }, (_, i) => calcRow(det, disp, pitch, lo + i)), [det, disp, pitch, lo, hi]);
-  const sorted = useMemo(() => [...results].sort((a, b) => a.worst - b.worst), [results]);
+  const cl = (l: string) => { setLang(l); try { localStorage.setItem(LANG_KEY, l); } catch {} };
+  const [dI, setDI] = useState(2); const [dpI, setDpI] = useState(1); const [pI, setPI] = useState(0);
+  const [fF, setFF] = useState(20); const [fT, setFT] = useState(75); const [sm, setSm] = useState<SortMode>("both");
+  const det = DETECTOR_PRESETS[dI], disp = DISPLAY_PRESETS[dpI], pitch = PITCH_OPTIONS[pI];
+  const lo = Math.min(fF, fT), hi = Math.max(fF, fT);
+  const results = useMemo(() => Array.from({ length: hi - lo + 1 }, (_, i) => {
+    const f = lo + i, h = calcAxis(det.w, disp.w, pitch, f), v = calcAxis(det.h, disp.h, pitch, f);
+    return { f, h, v, score: getScore(h, v, sm) };
+  }), [det, disp, pitch, lo, hi, sm]);
+  const sorted = useMemo(() => sortRows(results, sm), [results, sm]);
   const top5 = useMemo(() => new Set(sorted.slice(0, 5).map(r => r.f)), [sorted]);
-  const chart = useMemo(() => [...results].sort((a, b) => a.f - b.f).map(r => ({ f: r.f, eH: r.h.err, eV: r.v.err, pH: r.h.ppm, pV: r.v.ppm, w: r.worst })), [results]);
+  const chart = useMemo(() => [...results].sort((a, b) => a.f - b.f).map(r => ({ f: r.f, eH: r.h.err, eV: r.v.err, w: r.score })), [results]);
   const rH = det.w / disp.w, rV = det.h / disp.h, eH = rH * pitch, eV = rV * pitch;
   const aspOk = Math.abs(rH - rV) / Math.max(rH, rV) < 0.001;
   const mulH = findMultiples(eH, lo, hi), mulV = findMultiples(eV, lo, hi);
 
-  return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI', system-ui, sans-serif", padding: "0 16px 40px" }}>
-      <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-          <RikaLogo />
-          <h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: "'JetBrains Mono', monospace" }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v2.1</span></h1>
-          <LangSwitcher lang={lang} setLang={changeLang} />
-        </div>
-        <p style={{ fontSize: 13, color: C.dim, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720 }}>{t("subtitle")}</p>
-
-        <Card title={t("params")}>
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-            <ParamBlock label={t("detector")} hint={t("detectorHint")}><Sel value={detIdx} onChange={setDetIdx} options={DETECTOR_PRESETS} render={(p: Preset) => p.label + " px"} /></ParamBlock>
-            <ParamBlock label={t("pitch")} hint={t("pitchHint")}><Sel value={pitchIdx} onChange={setPitchIdx} options={PITCH_OPTIONS} render={(p: number) => p + " µm"} /></ParamBlock>
-            <ParamBlock label={t("display")} hint={t("displayHint")}><Sel value={dispIdx} onChange={setDispIdx} options={DISPLAY_PRESETS} render={(p: Preset) => p.label + " px"} /></ParamBlock>
-            <ParamBlock label={t("focalFrom")} hint={t("focalFromHint")}><Num value={fFrom} onChange={setFFrom} min={5} max={200} /></ParamBlock>
-            <ParamBlock label={t("focalTo")} hint={t("focalToHint")}><Num value={fTo} onChange={setFTo} min={5} max={200} /></ParamBlock>
-          </div>
-        </Card>
-
-        <Card title={t("computed")}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 32px", fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>
-            <div>
-              <div style={{ marginBottom: 4 }}><span style={{ color: C.H, fontWeight: 700 }}>{t("scaleH")}: {rH.toFixed(4)}</span><span style={{ color: C.dim }}> = {det.w} ÷ {disp.w}</span></div>
-              <div><span style={{ color: C.V, fontWeight: 700 }}>{t("scaleV")}: {rV.toFixed(4)}</span><span style={{ color: C.dim }}> = {det.h} ÷ {disp.h}</span></div>
-            </div>
-            <div style={{ fontSize: 11, color: C.hint, lineHeight: 1.6 }}>{t("scaleExplain")}</div>
-            <div>
-              <div style={{ marginBottom: 4 }}><span style={{ color: C.H, fontWeight: 700 }}>{t("effH")}: {eH.toFixed(2)} µm</span><span style={{ color: C.dim }}> = {rH.toFixed(4)} × {pitch}</span></div>
-              <div style={{ marginBottom: 8 }}><span style={{ color: C.V, fontWeight: 700 }}>{t("effV")}: {eV.toFixed(2)} µm</span><span style={{ color: C.dim }}> = {rV.toFixed(4)} × {pitch}</span></div>
-              <div style={{ fontSize: 11 }}><span style={{ color: C.H }}>{t("multiplesH")} </span><span style={{ color: C.green }}>{mulH.length > 0 ? mulH.join(", ") + " мм" : t("multiplesNone")}</span></div>
-              <div style={{ fontSize: 11 }}><span style={{ color: C.V }}>{t("multiplesV")} </span><span style={{ color: C.green }}>{mulV.length > 0 ? mulV.join(", ") + " мм" : t("multiplesNone")}</span></div>
-            </div>
-            <div style={{ fontSize: 11, color: C.hint, lineHeight: 1.6 }}>{t("effExplain")}</div>
-          </div>
-          <div style={{ marginTop: 12, fontSize: 12 }}>
-            {aspOk ? <span style={{ color: C.green }}>✓ {t("aspectOk")}</span> : <span style={{ color: C.yellow }}>⚠ {t("aspectWarn")}</span>}
-          </div>
-        </Card>
-
-        <Card title={t("formulas")}>
-          <div style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", lineHeight: 2, color: C.text }}>
-            <div><span style={{ color: C.dim }}>мрад/px =</span> (sensor ÷ display) × pitch ÷ F <span style={{ color: C.hint }}> — {t("fMradPx")}</span></div>
-            <div><span style={{ color: C.dim }}>px/мрад =</span> 1 ÷ мрад/px <span style={{ color: C.hint }}> — {t("fPxMrad")}</span></div>
-            <div><span style={{ color: C.dim }}>error =</span> |px/mrad − round(px/mrad)| ÷ px/mrad × 100% <span style={{ color: C.hint }}> — {t("fError")}</span></div>
-            <div><span style={{ color: C.dim }}>mm/100m =</span> (sensor ÷ display) × pitch × 100 ÷ F <span style={{ color: C.hint }}> — {t("fMm100")}</span></div>
-            <div style={{ marginTop: 8, color: C.green, fontSize: 11 }}>{t("fGoal")}</div>
-          </div>
-        </Card>
-
-        <Card title={t("chartTitle")}>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={chart} margin={{ top: 5, right: 12, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-              <XAxis dataKey="f" tick={{ fill: C.dim, fontSize: 10, fontFamily: "'JetBrains Mono'" }}
-                interval={Math.max(0, Math.floor(chart.length / 20) - 1)}
-                label={{ value: "F, mm", position: "insideBottomRight", offset: -2, fill: C.dim, fontSize: 10 }} />
-              <YAxis tick={{ fill: C.dim, fontSize: 10, fontFamily: "'JetBrains Mono'" }}
-                label={{ value: "%", position: "insideTopLeft", offset: 5, fill: C.dim, fontSize: 10 }} domain={[0, "auto"]} />
-              <Tooltip content={<ChartTip />} />
-              <ReferenceLine y={1} stroke={C.green} strokeDasharray="4 4" strokeOpacity={0.5} />
-              <ReferenceLine y={5} stroke={C.yellow} strokeDasharray="4 4" strokeOpacity={0.5} />
-              <Bar dataKey="w" radius={[2, 2, 0, 0]} maxBarSize={16}>
-                {chart.map((e, i) => <Cell key={i} fill={sc(e.w)} fillOpacity={top5.has(e.f) ? 1 : 0.4} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-          <div style={{ display: "flex", gap: 16, justifyContent: "center", padding: "8px 0 4px", fontSize: 10, fontFamily: "'JetBrains Mono'" }}>
-            <span><span style={{ color: C.green }}>■</span> {t("good")}</span>
-            <span><span style={{ color: C.yellow }}>■</span> {t("ok")}</span>
-            <span><span style={{ color: C.red }}>■</span> {t("bad")}</span>
-          </div>
-        </Card>
-
-        <ExplainBlock sorted={sorted} t={t} />
-
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden", marginBottom: 20 }}>
-          <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-            <span style={secTitleS}>{t("tableTitle")}</span>
-            <span style={{ fontSize: 11, color: C.hint }}>{sorted.length} {t("tableCount")} {lo}–{hi} mm</span>
-          </div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
-              <thead><tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                <TH w={30}/><TH align="center" tip={t("tipF")}>{t("colF")}</TH>
-                <TH align="right" color={C.H} tip={t("tipPpmH")}>{t("colPpmH")}</TH><TH align="right" color={C.H} tip={t("tipErrH")}>{t("colErrH")}</TH>
-                <TH align="right" color={C.V} tip={t("tipPpmV")}>{t("colPpmV")}</TH><TH align="right" color={C.V} tip={t("tipErrV")}>{t("colErrV")}</TH>
-                <TH align="right" tip={t("tipWorst")}>{t("colWorst")}</TH>
-                <TH align="right" tip={t("tipMmH")}>{t("colMmH")}</TH><TH align="right" tip={t("tipMmV")}>{t("colMmV")}</TH>
-              </tr></thead>
-              <tbody>{sorted.map((r, i) => {
-                const isTop = top5.has(r.f);
-                return (<tr key={r.f} style={{ borderBottom: `1px solid ${C.bg}`, background: isTop ? sbg(r.worst) : "transparent" }}>
-                  <td style={td("center", 30)}><div style={{ width: 8, height: 8, borderRadius: "50%", background: sc(r.worst), display: "inline-block", boxShadow: r.worst < 1 ? `0 0 8px ${C.green}66` : "none" }} /></td>
-                  <td style={{ ...td("center"), fontWeight: isTop ? 700 : 400, color: isTop ? "#fff" : C.text }}>
-                    {r.f}{i < 5 && <span style={{ fontSize: 9, color: C.green, marginLeft: 6, background: `${C.green}1a`, padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>#{i + 1}</span>}
-                  </td>
-                  <td style={{ ...td("right"), color: C.H }}>{r.h.ppm.toFixed(3)}</td>
-                  <td style={{ ...td("right"), fontWeight: 600, color: sc(r.h.err) }}>{r.h.err.toFixed(2)}</td>
-                  <td style={{ ...td("right"), color: C.V }}>{r.v.ppm.toFixed(3)}</td>
-                  <td style={{ ...td("right"), fontWeight: 600, color: sc(r.v.err) }}>{r.v.err.toFixed(2)}</td>
-                  <td style={{ ...td("right"), fontWeight: 700, color: sc(r.worst), fontSize: 13 }}>{r.worst.toFixed(2)}</td>
-                  <td style={{ ...td("right"), color: C.dim }}>{r.h.mm100.toFixed(2)}</td>
-                  <td style={{ ...td("right"), color: C.dim }}>{r.v.mm100.toFixed(2)}</td>
-                </tr>);
-              })}</tbody>
-            </table>
-          </div>
-        </div>
-
-        <Card title={t("colDesc")}>
-          <div style={{ fontSize: 12, color: C.dim, lineHeight: 2 }}>
-            <div><strong style={{ color: C.text }}>{t("colF")}</strong> — {t("descF")}</div>
-            <div><strong style={{ color: C.H }}>{t("colPpmH")}</strong> — {t("descPpmH")}</div>
-            <div><strong style={{ color: C.H }}>{t("colErrH")}</strong> — {t("descErrH")}</div>
-            <div><strong style={{ color: C.V }}>{t("colPpmV")}</strong> — {t("descPpmV")}</div>
-            <div><strong style={{ color: C.V }}>{t("colErrV")}</strong> — {t("descErrV")}</div>
-            <div><strong style={{ color: C.text }}>{t("colWorst")}</strong> — {t("descWorst")}</div>
-            <div><strong style={{ color: C.text }}>{t("colMmH")}/{t("colMmV")}</strong> — {t("descMm")}</div>
-          </div>
-        </Card>
-
-        <Card title={t("whyTitle")}>
-          <div style={{ fontSize: 13, color: C.dim, lineHeight: 1.7 }}>
-            <p style={{ margin: "0 0 8px" }}>{t("why1")}</p>
-            <p style={{ margin: "0 0 8px" }}>{t("why2")}</p>
-            <p style={{ margin: 0 }}>{t("why3")}</p>
-          </div>
-        </Card>
+  return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
+    <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v3.0</span></h1><LangSw lang={lang} setLang={cl} />
       </div>
+      <p style={{ fontSize: 13, color: C.dim, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720 }}>{t("subtitle")}</p>
+
+      <Cd title={t("params")}><div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+        <PB label={t("detector")} hint={t("detectorHint")}><Sel value={dI} onChange={setDI} options={DETECTOR_PRESETS} render={(p: Preset) => p.label + " px"} /></PB>
+        <PB label={t("pitch")} hint={t("pitchHint")}><Sel value={pI} onChange={setPI} options={PITCH_OPTIONS} render={(p: number) => p + " µm"} /></PB>
+        <PB label={t("display")} hint={t("displayHint")}><Sel value={dpI} onChange={setDpI} options={DISPLAY_PRESETS} render={(p: Preset) => p.label + " px"} /></PB>
+        <PB label={t("focalFrom")} hint={t("focalFromHint")}><Nm value={fF} onChange={setFF} min={5} max={200} /></PB>
+        <PB label={t("focalTo")} hint={t("focalToHint")}><Nm value={fT} onChange={setFT} min={5} max={200} /></PB>
+      </div></Cd>
+
+      <Cd title={t("computed")}><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 32px", fontSize: 12, fontFamily: mn }}>
+        <div><div style={{ marginBottom: 4 }}><span style={{ color: C.H, fontWeight: 700 }}>{t("scaleH")}: {rH.toFixed(4)}</span><span style={{ color: C.dim }}> = {det.w}÷{disp.w}</span></div><div><span style={{ color: C.V, fontWeight: 700 }}>{t("scaleV")}: {rV.toFixed(4)}</span><span style={{ color: C.dim }}> = {det.h}÷{disp.h}</span></div></div>
+        <div style={{ fontSize: 11, color: C.hint, lineHeight: 1.6 }}>{t("scaleExplain")}</div>
+        <div><div style={{ marginBottom: 4 }}><span style={{ color: C.H, fontWeight: 700 }}>{t("effH")}: {eH.toFixed(2)} µm</span></div><div style={{ marginBottom: 8 }}><span style={{ color: C.V, fontWeight: 700 }}>{t("effV")}: {eV.toFixed(2)} µm</span></div>
+          <div style={{ fontSize: 11 }}><span style={{ color: C.H }}>{t("multiplesH")} </span><span style={{ color: C.green }}>{mulH.length ? mulH.join(", ") + " мм" : t("multiplesNone")}</span></div>
+          <div style={{ fontSize: 11 }}><span style={{ color: C.V }}>{t("multiplesV")} </span><span style={{ color: C.green }}>{mulV.length ? mulV.join(", ") + " мм" : t("multiplesNone")}</span></div></div>
+        <div style={{ fontSize: 11, color: C.hint, lineHeight: 1.6 }}>{t("effExplain")}</div>
+      </div><div style={{ marginTop: 12, fontSize: 12 }}>{aspOk ? <span style={{ color: C.green }}>✓ {t("aspectOk")}</span> : <span style={{ color: C.yellow }}>⚠ {t("aspectWarn")}</span>}</div></Cd>
+
+      <SortMode mode={sm} setMode={setSm} t={t} />
+
+      <Cd title={t("chartTitle")}><ResponsiveContainer width="100%" height={220}><BarChart data={chart} margin={{ top: 5, right: 12, left: 0, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={C.border} /><XAxis dataKey="f" tick={{ fill: C.dim, fontSize: 10, fontFamily: mn }} interval={Math.max(0, Math.floor(chart.length / 20) - 1)} />
+        <YAxis tick={{ fill: C.dim, fontSize: 10, fontFamily: mn }} domain={[0, "auto"]} /><Tooltip content={<CTip />} />
+        <ReferenceLine y={1} stroke={C.green} strokeDasharray="4 4" strokeOpacity={0.5} /><ReferenceLine y={5} stroke={C.yellow} strokeDasharray="4 4" strokeOpacity={0.5} />
+        <Bar dataKey="w" radius={[2, 2, 0, 0]} maxBarSize={16}>{chart.map((e, i) => <Cell key={i} fill={sc(e.w)} fillOpacity={top5.has(e.f) ? 1 : 0.4} />)}</Bar>
+      </BarChart></ResponsiveContainer>
+      <div style={{ display: "flex", gap: 16, justifyContent: "center", padding: "8px 0 4px", fontSize: 10, fontFamily: mn }}>
+        <span><span style={{ color: C.green }}>■</span> {t("good")}</span><span><span style={{ color: C.yellow }}>■</span> {t("ok")}</span><span><span style={{ color: C.red }}>■</span> {t("bad")}</span>
+      </div></Cd>
+
+      <Explain sorted={sorted} mode={sm} t={t} />
+
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden", marginBottom: 20 }}>
+        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <span style={sS}>{t("tableTitle")}</span><span style={{ fontSize: 11, color: C.hint }}>{sorted.length} {t("tableCount")} {lo}–{hi}mm</span>
+        </div><div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 12 }}>
+          <thead><tr style={{ borderBottom: `1px solid ${C.border}` }}>
+            <TH w={30} /><TH align="center" tip={t("tipF")}>{t("colF")}</TH>
+            <TH align="right" color={C.H} tip={t("tipPpmH")}>{t("colPpmH")}</TH><TH align="right" color={C.H} tip={t("tipErrH")}>{t("colErrH")}</TH>
+            <TH align="right" color={C.V} tip={t("tipPpmV")}>{t("colPpmV")}</TH><TH align="right" color={C.V} tip={t("tipErrV")}>{t("colErrV")}</TH>
+            <TH align="right" tip={t("tipWorst")}>{t("colWorst")}</TH>
+            <TH align="right" tip={t("tipMmH")}>{t("colMmH")}</TH><TH align="right" tip={t("tipMmV")}>{t("colMmV")}</TH>
+          </tr></thead>
+          <tbody>{sorted.map((r, i) => { const isT = top5.has(r.f); const sv = sm === "both" ? r.score : r.v.err; return (<tr key={r.f} style={{ borderBottom: `1px solid ${C.bg}`, background: isT ? sbg(sv) : "transparent" }}>
+            <td style={td("center", 30)}><div style={{ width: 8, height: 8, borderRadius: "50%", background: sc(sv), display: "inline-block", boxShadow: sv < 1 ? `0 0 8px ${C.green}66` : "none" }} /></td>
+            <td style={{ ...td("center"), fontWeight: isT ? 700 : 400, color: isT ? "#fff" : C.text }}>{r.f}{i < 5 && <span style={{ fontSize: 9, color: C.green, marginLeft: 6, background: `${C.green}1a`, padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>#{i + 1}</span>}</td>
+            <td style={{ ...td("right"), color: sm === "vOnly" ? C.hint : C.H }}>{r.h.ppm.toFixed(3)}</td>
+            <td style={{ ...td("right"), fontWeight: 600, color: sm === "vOnly" ? C.hint : sc(r.h.err) }}>{r.h.err.toFixed(2)}</td>
+            <td style={{ ...td("right"), color: C.V }}>{r.v.ppm.toFixed(3)}</td>
+            <td style={{ ...td("right"), fontWeight: 600, color: sc(r.v.err) }}>{r.v.err.toFixed(2)}</td>
+            <td style={{ ...td("right"), fontWeight: 700, color: sc(sv), fontSize: 13 }}>{sv.toFixed(2)}</td>
+            <td style={{ ...td("right"), color: C.dim }}>{r.h.mm100.toFixed(2)}</td>
+            <td style={{ ...td("right"), color: C.dim }}>{r.v.mm100.toFixed(2)}</td>
+          </tr>); })}</tbody>
+        </table></div>
+      </div>
+
+      <Cd title={t("colDesc")}><div style={{ fontSize: 12, color: C.dim, lineHeight: 2 }}>
+        <div><strong style={{ color: C.text }}>{t("colF")}</strong> — {t("descF")}</div>
+        <div><strong style={{ color: C.H }}>{t("colPpmH")}</strong> — {t("descPpmH")}</div>
+        <div><strong style={{ color: C.H }}>{t("colErrH")}</strong> — {t("descErrH")}</div>
+        <div><strong style={{ color: C.V }}>{t("colPpmV")}</strong> — {t("descPpmV")}</div>
+        <div><strong style={{ color: C.V }}>{t("colErrV")}</strong> — {t("descErrV")}</div>
+        <div><strong style={{ color: C.text }}>{t("colWorst")}</strong> — {t("descWorst")}</div>
+        <div><strong style={{ color: C.text }}>{t("colMmH")}/{t("colMmV")}</strong> — {t("descMm")}</div>
+      </div></Cd>
+
+      <Cd title={t("whyTitle")}><div style={{ fontSize: 13, color: C.dim, lineHeight: 1.7 }}>
+        <p style={{ margin: "0 0 8px" }}>{t("why1")}</p><p style={{ margin: "0 0 8px" }}>{t("why2")}</p><p style={{ margin: 0 }}>{t("why3")}</p>
+      </div></Cd>
     </div>
-  );
+  </div>);
 }
