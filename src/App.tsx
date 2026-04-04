@@ -63,8 +63,13 @@ const T: Record<string, Record<string, string>> = {
     pixelSize: "Размер 1 пикселя на дистанции", addCompare: "Добавить в сравнение +", removeCompare: "Убрать из сравнения ✕",
     expandHint: "Размер пикселя — физический размер, покрываемый 1 пикселем дисплея на данной дистанции. Ошибка позиции — насколько штрих сетки сдвинут от идеального положения из-за округления px/мрад.",
     dist: "Дист.", clickRowHint: "Кликните на строку чтобы раскрыть таблицу дистанций и добавить в сравнение",
-    tipPixelSize: "Какой физический размер покрывает 1 пиксель дисплея на каждой дистанции. Определяет минимальную видимую деталь.",
-    tipPosError: "На сколько миллиметров штрих прицельной сетки сдвинут от идеального положения. Формула: ошибка_% / 100 × дистанция_м",
+    tipPixelSize: "Какой физический размер в миллиметрах покрывает один пиксель микродисплея на каждой дистанции. Это характеристика разрешения оптической системы — насколько мелкую деталь можно различить. Формула: (сенсор ÷ дисплей) × шаг_пикселя × дистанция ÷ фокусное. Не зависит от ошибки округления.",
+    tipPosError: "На сколько миллиметров штрих прицельной сетки сдвинут от идеального положения на каждой дистанции из-за того, что px/мрад не целое число. Это реальная ошибка прицеливания. Формула: ошибка_% ÷ 100 × дистанция_м. Например: ошибка 2% на 500м = 10мм сдвига. Зелёный < 5мм, жёлтый < 20мм, красный ≥ 20мм.",
+    tipDistCol: "Дистанция до цели в метрах. Ошибка растёт линейно с дистанцией — на 1000м ровно в 10 раз больше чем на 100м.",
+    tipPixHCol: "Размер одного пикселя дисплея по горизонтали на данной дистанции, в миллиметрах. Чем меньше — тем выше разрешение системы в горизонтальной плоскости.",
+    tipPixVCol: "Размер одного пикселя дисплея по вертикали на данной дистанции, в миллиметрах. Чем меньше — тем выше разрешение системы в вертикальной плоскости.",
+    tipErrHCol: "Сдвиг штриха сетки по горизонтали от идеальной позиции, в миллиметрах. Влияет на точность ветровых поправок. Зелёный < 5мм, жёлтый < 20мм, красный ≥ 20мм.",
+    tipErrVCol: "Сдвиг штриха сетки по вертикали от идеальной позиции, в миллиметрах. Критично для баллистических поправок (holdover) и определения дистанции (mil-ranging). Зелёный < 5мм, жёлтый < 20мм, красный ≥ 20мм.",
     tipModeBoth: "Итоговая ошибка = максимум из горизонтальной и вертикальной. Подходит когда важна равномерная точность по всем направлениям.",
     tipModeVPri: "Сортировка сначала по вертикальной ошибке. При равных V — выбирается лучший H. Для задач где вертикальные поправки (holdover, mil-ranging) важнее ветровых.",
     tipModeVOnly: "Только вертикальная ошибка определяет рейтинг. Горизонталь полностью игнорируется. Максимально прагматичный выбор под баллистику.",
@@ -113,8 +118,13 @@ const T: Record<string, Record<string, string>> = {
     pixelSize: "1 pixel size at distance", addCompare: "Add to comparison +", removeCompare: "Remove from comparison ✕",
     expandHint: "Pixel size — physical area covered by 1 display pixel at this distance. Position error — how far a reticle mark is shifted from its ideal position due to px/mrad rounding.",
     dist: "Dist.", clickRowHint: "Click a row to expand distance tables and add to comparison",
-    tipPixelSize: "Physical area covered by 1 display pixel at each distance. Determines the minimum visible detail.",
-    tipPosError: "How many millimeters a reticle mark is shifted from its ideal position. Formula: error_% / 100 × distance_m",
+    tipPixelSize: "Physical size in millimeters covered by one microdisplay pixel at each distance. This is the optical system resolution — the smallest detail you can see. Formula: (sensor ÷ display) × pixel_pitch × distance ÷ focal. Independent of rounding error.",
+    tipPosError: "How many millimeters a reticle mark is shifted from its ideal position at each distance because px/mrad is not an integer. This is the real aiming error. Formula: error_% ÷ 100 × distance_m. Example: 2% error at 500m = 10mm shift. Green < 5mm, yellow < 20mm, red ≥ 20mm.",
+    tipDistCol: "Distance to target in meters. Error grows linearly with distance — at 1000m it is exactly 10× greater than at 100m.",
+    tipPixHCol: "Size of one display pixel horizontally at this distance, in millimeters. Smaller = higher horizontal resolution.",
+    tipPixVCol: "Size of one display pixel vertically at this distance, in millimeters. Smaller = higher vertical resolution.",
+    tipErrHCol: "Horizontal reticle mark shift from ideal position, in millimeters. Affects windage correction accuracy. Green < 5mm, yellow < 20mm, red ≥ 20mm.",
+    tipErrVCol: "Vertical reticle mark shift from ideal position, in millimeters. Critical for holdover and mil-ranging accuracy. Green < 5mm, yellow < 20mm, red ≥ 20mm.",
     tipModeBoth: "Overall error = max of horizontal and vertical. Best when uniform accuracy in all directions matters.",
     tipModeVPri: "Sort by vertical error first. Equal V → better H wins. For tasks where vertical corrections (holdover, mil-ranging) matter more than wind.",
     tipModeVOnly: "Only vertical error determines ranking. Horizontal is fully ignored. Most pragmatic choice for ballistics.",
@@ -154,8 +164,13 @@ const T: Record<string, Record<string, string>> = {
     pixelSize: "像素在距离处的大小", addCompare: "添加到比较 +", removeCompare: "从比较中删除 ✕",
     expandHint: "像素大小——1个显示像素在该距离处覆盖的物理面积。位置误差——由于px/mrad舍入导致标记偏离理想位置的距离。",
     dist: "距离", clickRowHint: "点击行展开距离表并添加到比较",
-    tipPixelSize: "每个距离处1个显示像素覆盖的物理面积。决定最小可见细节。",
-    tipPosError: "瞄准线标记偏离理想位置的毫米数。公式：误差%/100×距离m",
+    tipPixelSize: "每个微显示器像素在各距离处覆盖的物理尺寸（毫米）。这是光学系统的分辨率特征——能看到的最小细节。公式：(传感器÷显示器)×像素间距×距离÷焦距。与舍入误差无关。",
+    tipPosError: "由于px/mrad不是整数，瞄准线标记在各距离处偏离理想位置多少毫米。这是实际的瞄准误差。公式：误差%÷100×距离m。示例：500m处2%误差=10mm偏移。绿色<5mm，黄色<20mm，红色≥20mm。",
+    tipDistCol: "到目标的距离（米）。误差随距离线性增长——1000m处恰好是100m处的10倍。",
+    tipPixHCol: "该距离处一个显示像素的水平尺寸（毫米）。越小=水平分辨率越高。",
+    tipPixVCol: "该距离处一个显示像素的垂直尺寸（毫米）。越小=垂直分辨率越高。",
+    tipErrHCol: "瞄准线水平偏移（毫米）。影响风偏修正精度。绿<5mm，黄<20mm，红≥20mm。",
+    tipErrVCol: "瞄准线垂直偏移（毫米）。对弹道修正和测距精度至关重要。绿<5mm，黄<20mm，红≥20mm。",
     tipModeBoth: "综合误差=水平和垂直中的最大值。适用于各方向精度同等重要的场景。",
     tipModeVPri: "先按垂直误差排序。V相同时选择更好的H。适用于垂直修正比风偏更重要的任务。",
     tipModeVOnly: "仅垂直误差决定排名。完全忽略水平轴。最实用的弹道选择。",
@@ -278,6 +293,16 @@ export default function App() {
   const [lang, setLang] = useState(() => { if (_hp.lang && T[_hp.lang]) return _hp.lang; try { return localStorage.getItem(LANG_KEY) || "en"; } catch { return "en"; } });
   const t = (k: string) => T[lang]?.[k] ?? T.en[k] ?? k;
   const tip = t;
+  const cTip = (type: string, v: string, d: number): string => {
+    const m: Record<string, Record<string, string>> = {
+      pixH: { ru: `${v} мм — один пиксель дисплея покрывает ${v} мм по горизонтали на дистанции ${d}м. Объект меньше ${v} мм будет занимать менее 1 пикселя.`, en: `${v} mm — one display pixel covers ${v} mm horizontally at ${d}m. An object smaller than ${v} mm fits in less than 1 pixel.`, zh: `${v} mm — 在${d}m处一个显示像素水平覆盖${v}mm。小于${v}mm的目标不到1个像素。` },
+      pixV: { ru: `${v} мм — один пиксель дисплея покрывает ${v} мм по вертикали на дистанции ${d}м. Объект меньше ${v} мм будет занимать менее 1 пикселя.`, en: `${v} mm — one display pixel covers ${v} mm vertically at ${d}m. An object smaller than ${v} mm fits in less than 1 pixel.`, zh: `${v} mm — 在${d}m处一个显示像素垂直覆盖${v}mm。小于${v}mm的目标不到1个像素。` },
+      errH: { ru: `${v} мм — штрих сетки сдвинут на ${v} мм по горизонтали от идеального положения на ${d}м. Это ошибка ветровой поправки.`, en: `${v} mm — reticle mark shifted ${v} mm horizontally from ideal at ${d}m. This is the windage correction error.`, zh: `${v} mm — 在${d}m处瞄准线水平偏移${v}mm。这是风偏修正误差。` },
+      errV: { ru: `${v} мм — штрих сетки сдвинут на ${v} мм по вертикали от идеального положения на ${d}м. Это ошибка баллистической поправки (holdover).`, en: `${v} mm — reticle mark shifted ${v} mm vertically from ideal at ${d}m. This is the holdover correction error.`, zh: `${v} mm — 在${d}m处瞄准线垂直偏移${v}mm。这是弹道修正误差。` },
+      dist: { ru: `Дистанция ${d} метров. 1 мрад на ${d}м = ${d} мм.`, en: `Distance ${d} meters. 1 mrad at ${d}m = ${d} mm.`, zh: `距离${d}米。${d}m处1mrad=${d}mm。` },
+    };
+    return m[type]?.[lang] ?? m[type]?.en ?? '';
+  };
   const cl = (l: string) => { setLang(l); try { localStorage.setItem(LANG_KEY, l); } catch {} };
   const [dI, setDI] = useState(() => { const v = Number(_hp.det); return v >= 0 && v < DETECTOR_PRESETS.length ? v : 3; });
   const [dpI, setDpI] = useState(() => { const v = Number(_hp.disp); return v >= 0 && v < DISPLAY_PRESETS.length ? v : 1; });
@@ -306,7 +331,7 @@ export default function App() {
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.4.1</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.5.0</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
       </div>
       <p style={{ fontSize: 16, color: C.text, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720, fontWeight: 500 }}>{t("subtitle")}</p>
 
@@ -368,15 +393,15 @@ export default function App() {
               <div style={{ flex: "1 1 300px" }}>
                 <div title={tip("tipPixelSize")} style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6, cursor: "help" }}>{t("pixelSize")}</div>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 11 }}>
-                  <thead><tr><th style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>{t("dist")}</th><th style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>H, mm</th><th style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>V, mm</th></tr></thead>
-                  <tbody>{DISTANCES.map(d => <tr key={d}><td style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td><td style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{(r.h.mm100 * d / 100).toFixed(2)}</td><td style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{(r.v.mm100 * d / 100).toFixed(2)}</td></tr>)}</tbody>
+                  <thead><tr><th title={t("tipDistCol")} style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>{t("dist")}</th><th title={t("tipPixHCol")} style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>H, mm</th><th title={t("tipPixVCol")} style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>V, mm</th></tr></thead>
+                  <tbody>{DISTANCES.map(d => { const hv = (r.h.mm100 * d / 100).toFixed(2), vv = (r.v.mm100 * d / 100).toFixed(2); return <tr key={d}><td title={cTip("dist", "", d)} style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td><td title={cTip("pixH", hv, d)} style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{hv}</td><td title={cTip("pixV", vv, d)} style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{vv}</td></tr>; })}</tbody>
                 </table>
               </div>
               <div style={{ flex: "1 1 300px" }}>
                 <div title={tip("tipPosError")} style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6, cursor: "help" }}>{t("posError")}</div>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 11 }}>
-                  <thead><tr><th style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>{t("dist")}</th><th style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>H, mm</th><th style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>V, mm</th></tr></thead>
-                  <tbody>{DISTANCES.map(d => { const eh = r.h.err / 100 * d, ev = r.v.err / 100 * d; return <tr key={d}><td style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td><td title={`${eh.toFixed(2)} ${tip("tipPosCell")} ${d}m`} style={{ textAlign: "right", color: eh < 5 ? C.green : eh < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{eh.toFixed(2)}</td><td title={`${ev.toFixed(2)} ${tip("tipPosCell")} ${d}m`} style={{ textAlign: "right", color: ev < 5 ? C.green : ev < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{ev.toFixed(2)}</td></tr>; })}</tbody>
+                  <thead><tr><th title={t("tipDistCol")} style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>{t("dist")}</th><th title={t("tipErrHCol")} style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>H, mm</th><th title={t("tipErrVCol")} style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>V, mm</th></tr></thead>
+                  <tbody>{DISTANCES.map(d => { const eh = r.h.err / 100 * d, ev = r.v.err / 100 * d; return <tr key={d}><td title={cTip("dist", "", d)} style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td><td title={cTip("errH", eh.toFixed(2), d)} style={{ textAlign: "right", color: eh < 5 ? C.green : eh < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{eh.toFixed(2)}</td><td title={cTip("errV", ev.toFixed(2), d)} style={{ textAlign: "right", color: ev < 5 ? C.green : ev < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{ev.toFixed(2)}</td></tr>; })}</tbody>
                 </table>
               </div>
             </div>
@@ -399,32 +424,32 @@ export default function App() {
               <div>total: <span style={{ color: sc(sv), fontWeight: 700 }}>{sv.toFixed(2)}%</span></div>
             </div>
             <div style={{ marginTop: 10, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
-              <div style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{t("distTable")}</div>
+              <div title={tip("tipPixelSize")} style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6, cursor: "help" }}>{t("distTable")}</div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 11 }}>
                 <thead><tr>
-                  <th style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>D</th>
-                  <th style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>H, mm</th>
-                  <th style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>V, mm</th>
+                  <th title={t("tipDistCol")} style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>D</th>
+                  <th title={t("tipPixHCol")} style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>H, mm</th>
+                  <th title={t("tipPixVCol")} style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>V, mm</th>
                 </tr></thead>
-                <tbody>{DISTANCES.map(d => <tr key={d}>
-                  <td style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td>
-                  <td style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{(r.h.mm100 * d / 100).toFixed(2)}</td>
-                  <td style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{(r.v.mm100 * d / 100).toFixed(2)}</td>
-                </tr>)}</tbody>
+                <tbody>{DISTANCES.map(d => { const hv = (r.h.mm100 * d / 100).toFixed(2), vv = (r.v.mm100 * d / 100).toFixed(2); return <tr key={d}>
+                  <td title={cTip("dist", "", d)} style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td>
+                  <td title={cTip("pixH", hv, d)} style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{hv}</td>
+                  <td title={cTip("pixV", vv, d)} style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{vv}</td>
+                </tr>; })}</tbody>
               </table>
             </div>
             <div style={{ marginTop: 10, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
-              <div style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{t("posError")}</div>
+              <div title={tip("tipPosError")} style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6, cursor: "help" }}>{t("posError")}</div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 11 }}>
                 <thead><tr>
-                  <th style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>D</th>
-                  <th style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>H, mm</th>
-                  <th style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>V, mm</th>
+                  <th title={t("tipDistCol")} style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>D</th>
+                  <th title={t("tipErrHCol")} style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>H, mm</th>
+                  <th title={t("tipErrVCol")} style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>V, mm</th>
                 </tr></thead>
                 <tbody>{DISTANCES.map(d => { const eh = r.h.err / 100 * d, ev = r.v.err / 100 * d; return <tr key={d}>
-                  <td style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td>
-                  <td style={{ textAlign: "right", color: eh < 5 ? C.green : eh < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{eh.toFixed(2)}</td>
-                  <td style={{ textAlign: "right", color: ev < 5 ? C.green : ev < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{ev.toFixed(2)}</td>
+                  <td title={cTip("dist", "", d)} style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td>
+                  <td title={cTip("errH", eh.toFixed(2), d)} style={{ textAlign: "right", color: eh < 5 ? C.green : eh < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{eh.toFixed(2)}</td>
+                  <td title={cTip("errV", ev.toFixed(2), d)} style={{ textAlign: "right", color: ev < 5 ? C.green : ev < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{ev.toFixed(2)}</td>
                 </tr>; })}</tbody>
               </table>
             </div>
