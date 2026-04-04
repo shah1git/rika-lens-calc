@@ -304,7 +304,7 @@ function Card({ title, children }: { title?: string; children: React.ReactNode }
 
 function TH({ children, align, w, color, tip }: { children?: React.ReactNode; align?: string; w?: number; color?: string; tip?: string }) {
   return (
-    <th title={tip} style={{
+    <th data-tip={tip || undefined} style={{
       padding: "10px 10px", textAlign: (align || "left") as any, width: w,
       fontSize: 10, color: color || C.dim, fontWeight: 600, whiteSpace: "nowrap",
       fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase", letterSpacing: "0.04em",
