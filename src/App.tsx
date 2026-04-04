@@ -306,7 +306,7 @@ export default function App() {
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.4</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.4.1</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
       </div>
       <p style={{ fontSize: 16, color: C.text, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720, fontWeight: 500 }}>{t("subtitle")}</p>
 
@@ -376,7 +376,7 @@ export default function App() {
                 <div title={tip("tipPosError")} style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6, cursor: "help" }}>{t("posError")}</div>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 11 }}>
                   <thead><tr><th style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>{t("dist")}</th><th style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>H, mm</th><th style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>V, mm</th></tr></thead>
-                  <tbody>{DISTANCES.map(d => { const eh = r.h.err / 100 * d, ev = r.v.err / 100 * d; return <tr key={d}><td style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td><td title={`${eh.toFixed(1)} ${tip("tipPosCell")} ${d}m`} style={{ textAlign: "right", color: eh < 5 ? C.green : eh < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{eh.toFixed(1)}</td><td title={`${ev.toFixed(1)} ${tip("tipPosCell")} ${d}m`} style={{ textAlign: "right", color: ev < 5 ? C.green : ev < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{ev.toFixed(1)}</td></tr>; })}</tbody>
+                  <tbody>{DISTANCES.map(d => { const eh = r.h.err / 100 * d, ev = r.v.err / 100 * d; return <tr key={d}><td style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td><td title={`${eh.toFixed(2)} ${tip("tipPosCell")} ${d}m`} style={{ textAlign: "right", color: eh < 5 ? C.green : eh < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{eh.toFixed(2)}</td><td title={`${ev.toFixed(2)} ${tip("tipPosCell")} ${d}m`} style={{ textAlign: "right", color: ev < 5 ? C.green : ev < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{ev.toFixed(2)}</td></tr>; })}</tbody>
                 </table>
               </div>
             </div>
@@ -423,8 +423,8 @@ export default function App() {
                 </tr></thead>
                 <tbody>{DISTANCES.map(d => { const eh = r.h.err / 100 * d, ev = r.v.err / 100 * d; return <tr key={d}>
                   <td style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td>
-                  <td style={{ textAlign: "right", color: eh < 5 ? C.green : eh < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{eh.toFixed(1)}</td>
-                  <td style={{ textAlign: "right", color: ev < 5 ? C.green : ev < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{ev.toFixed(1)}</td>
+                  <td style={{ textAlign: "right", color: eh < 5 ? C.green : eh < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{eh.toFixed(2)}</td>
+                  <td style={{ textAlign: "right", color: ev < 5 ? C.green : ev < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{ev.toFixed(2)}</td>
                 </tr>; })}</tbody>
               </table>
             </div>
