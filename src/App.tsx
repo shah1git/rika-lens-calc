@@ -270,8 +270,13 @@ function Sel({ value, onChange, options, render }: { value: number; onChange: (v
 }
 
 function Num({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
-  return <input type="number" value={value} min={min} max={max}
-    onChange={e => onChange(Math.max(min, Math.min(max, Number(e.target.value))))}
+  const [draft, setDraft] = useState<string>(String(value));
+  const committed = React.useRef(value);
+  if (value !== committed.current) { committed.current = value; setDraft(String(value)); }
+  return <input type="number" value={draft} min={min} max={max}
+    onChange={e => setDraft(e.target.value)}
+    onBlur={() => { const n = Math.max(min, Math.min(max, Number(draft) || min)); committed.current = n; setDraft(String(n)); onChange(n); }}
+    onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
     style={{ ...inpS, width: 90 }} />;
 }
 
