@@ -41,9 +41,14 @@ const T: Record<string, Record<string, string>> = {
     tableTitle: "Результаты — по итоговой ошибке ↑", tableCount: "в диапазоне",
     colF: "F, мм", colPpmH: "px/мрад H", colErrH: "Ош. H %", colPpmV: "px/мрад V", colErrV: "Ош. V %",
     colWorst: "Итог. %", colMmH: "мм/100м H", colMmV: "мм/100м V",
-    tipF: "Фокусное расстояние, мм.", tipPpmH: "Пикселей/мрад H.", tipErrH: "Ошибка H.",
-    tipPpmV: "Пикселей/мрад V.", tipErrV: "Ошибка V.", tipWorst: "Итоговая — зависит от режима.",
-    tipMmH: "Размер px на 100 м H.", tipMmV: "Размер px на 100 м V.",
+    tipF: "Фокусное расстояние объектива в мм. Чем больше — тем уже поле зрения и крупнее изображение.",
+    tipPpmH: "Пикселей дисплея на 1 мрад по горизонтали. Идеально: целое число — штрихи точно на пикселях.",
+    tipErrH: "Ошибка округления по горизонтали. 0% = идеальное попадание, дробная часть px/mrad минимальна.",
+    tipPpmV: "Пикселей дисплея на 1 мрад по вертикали. Идеально: целое число.",
+    tipErrV: "Ошибка округления по вертикали. Критична для holdover и mil-ranging.",
+    tipWorst: "Итоговая ошибка — max(H,V) или только V, в зависимости от выбранного режима приоритета осей.",
+    tipMmH: "Линейный размер 1 пикселя на дистанции 100 м по горизонтали.",
+    tipMmV: "Линейный размер 1 пикселя на дистанции 100 м по вертикали.",
     colDesc: "Описание колонок",
     descF: "Фокусное расстояние (мм).", descPpmH: "Пикселей на 1 мрад H.", descErrH: "Отклонение от целого H.",
     descPpmV: "То же V.", descErrV: "Отклонение V.", descWorst: "Итоговая. Зависит от режима. Отсортировано по ней.",
@@ -79,8 +84,14 @@ const T: Record<string, Record<string, string>> = {
     tableTitle: "Results — overall error ↑", tableCount: "in range",
     colF: "F,mm", colPpmH: "px/mrad H", colErrH: "Err H%", colPpmV: "px/mrad V", colErrV: "Err V%",
     colWorst: "Overall%", colMmH: "mm/100m H", colMmV: "mm/100m V",
-    tipF: "Focal mm.", tipPpmH: "px/mrad H.", tipErrH: "H err.", tipPpmV: "px/mrad V.", tipErrV: "V err.",
-    tipWorst: "Overall — depends on mode.", tipMmH: "px size 100m H.", tipMmV: "px size 100m V.",
+    tipF: "Objective focal length in mm. Larger = narrower FOV, larger image.",
+    tipPpmH: "Display pixels per 1 mrad horizontally. Ideal: integer — reticle marks land exactly on pixels.",
+    tipErrH: "Rounding error horizontally. 0% = perfect fit, fractional px/mrad is minimal.",
+    tipPpmV: "Display pixels per 1 mrad vertically. Ideal: integer.",
+    tipErrV: "Rounding error vertically. Critical for holdover and mil-ranging.",
+    tipWorst: "Overall error — max(H,V) or V only, depending on the selected axis priority mode.",
+    tipMmH: "Linear size of 1 pixel at 100 m distance horizontally.",
+    tipMmV: "Linear size of 1 pixel at 100 m distance vertically.",
     colDesc: "Columns", descF: "Focal length.", descPpmH: "px/mrad H.", descErrH: "H deviation.",
     descPpmV: "Same V.", descErrV: "V deviation.", descWorst: "Overall. Sorted by this.", descMm: "Pixel size 100m.",
     whyTitle: "Why it matters", why1: "Reticle on pixels. Non-integer = drift.", why2: "500-1000m = real miss.", why3: "Right lens: 1 mrad = N px.",
@@ -103,7 +114,14 @@ const T: Record<string, Record<string, string>> = {
     tableTitle: "结果↑", tableCount: "范围内",
     colF: "F", colPpmH: "H px/mr", colErrH: "H%", colPpmV: "V px/mr", colErrV: "V%",
     colWorst: "综合%", colMmH: "H mm", colMmV: "V mm",
-    tipF: "", tipPpmH: "", tipErrH: "", tipPpmV: "", tipErrV: "", tipWorst: "", tipMmH: "", tipMmV: "",
+    tipF: "物镜焦距(mm)。越大视场越窄，图像越大。",
+    tipPpmH: "水平方向每mrad显示像素数。理想值为整数。",
+    tipErrH: "水平舍入误差。0%=完美匹配。",
+    tipPpmV: "垂直方向每mrad显示像素数。理想值为整数。",
+    tipErrV: "垂直舍入误差。弹道修正关键参数。",
+    tipWorst: "综合误差——取决于轴优先级模式。",
+    tipMmH: "100m处1像素水平线性尺寸。",
+    tipMmV: "100m处1像素垂直线性尺寸。",
     colDesc: "列", descF: "", descPpmH: "", descErrH: "", descPpmV: "", descErrV: "", descWorst: "", descMm: "",
     whyTitle: "原因", why1: "不对齐=舍入", why2: "远距偏移", why3: "选对镜头",
   },
@@ -229,7 +247,7 @@ export default function App() {
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v3.3</span></h1><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v3.4</span></h1><LangSw lang={lang} setLang={cl} />
       </div>
       <p style={{ fontSize: 13, color: C.dim, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720 }}>{t("subtitle")}</p>
 
