@@ -33,3 +33,7 @@ body { -webkit-font-smoothing: antialiased; }
 [data-tip]:hover::after {
   opacity: 1;
 }
+@keyframes jackpot-pulse {
+  0%, 100% { box-shadow: 0 0 8px #00ff88, 0 0 20px #00ff8844; }
+  50% { box-shadow: 0 0 12px #00ff88, 0 0 30px #00ff8866; }
+}
