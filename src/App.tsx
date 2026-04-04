@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
 
 interface Preset { label: string; w: number; h: number }
@@ -57,6 +57,9 @@ const T: Record<string, Record<string, string>> = {
     why1: "Сетка рисуется на пикселях. Если 1 мрад ≠ целое — штрихи «плавают».",
     why2: "На 500–1000 м ошибка = реальное отклонение попадания.",
     why3: "Правильный объектив: 1 мрад = ровно N пикселей.",
+    copyLink: "Скопировать ссылку", linkCopied: "✓ Скопировано",
+    compare: "Сравнение", compareHint: "Кликните на строку таблицы чтобы добавить в сравнение (макс. 3)",
+    distTable: "Размер 1 пикселя на дистанции",
   },
   en: {
     title: "Lens Selection", subtitle: "Find focal length where 1 mrad = integer display pixels",
@@ -95,6 +98,9 @@ const T: Record<string, Record<string, string>> = {
     colDesc: "Columns", descF: "Focal length.", descPpmH: "px/mrad H.", descErrH: "H deviation.",
     descPpmV: "Same V.", descErrV: "V deviation.", descWorst: "Overall. Sorted by this.", descMm: "Pixel size 100m.",
     whyTitle: "Why it matters", why1: "Reticle on pixels. Non-integer = drift.", why2: "500-1000m = real miss.", why3: "Right lens: 1 mrad = N px.",
+    copyLink: "Copy link", linkCopied: "✓ Copied",
+    compare: "Compare", compareHint: "Click a table row to add to comparison (max 3)",
+    distTable: "1 pixel size at distance",
   },
   zh: {
     title: "镜头选择", subtitle: "1mrad=整数像素",
@@ -124,12 +130,19 @@ const T: Record<string, Record<string, string>> = {
     tipMmV: "100m处1像素垂直线性尺寸。",
     colDesc: "列", descF: "", descPpmH: "", descErrH: "", descPpmV: "", descErrV: "", descWorst: "", descMm: "",
     whyTitle: "原因", why1: "不对齐=舍入", why2: "远距偏移", why3: "选对镜头",
+    copyLink: "复制链接", linkCopied: "✓ 已复制",
+    compare: "比较", compareHint: "点击表格行添加到比较（最多3）",
+    distTable: "像素在距离处的大小",
   },
 };
 const LANG_KEY = "rika-calc-lang";
 const DETECTOR_PRESETS: Preset[] = [{label:"256×192",w:256,h:192},{label:"384×288",w:384,h:288},{label:"640×480",w:640,h:480},{label:"640×512",w:640,h:512},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024}];
 const DISPLAY_PRESETS: Preset[] = [{label:"640×480",w:640,h:480},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024},{label:"1920×1080",w:1920,h:1080},{label:"2560×2560",w:2560,h:2560}];
 const PITCH_OPTIONS = [12, 15, 17, 25];
+const CMP_COLORS = ["#00ccff", "#ff66ff", "#ffcc00"];
+const DISTANCES = [100, 200, 300, 500, 700, 1000];
+function parseHash(): Record<string, string> { try { const p: Record<string, string> = {}; window.location.hash.slice(1).split('&').forEach(s => { const [k, v] = s.split('='); if (k && v) p[k] = v; }); return p; } catch { return {}; } }
+const _hp = parseHash();
 
 function calcAxis(sR: number, dR: number, p: number, f: number): AxisResult {
   const r = sR / dR, ppm = f / (r * p), near = Math.round(ppm);
@@ -226,11 +239,19 @@ function Explain({ sorted, mode, t }: { sorted: RowResult[]; mode: SortMode; t: 
 }
 
 export default function App() {
-  const [lang, setLang] = useState(() => { try { return localStorage.getItem(LANG_KEY) || "en"; } catch { return "en"; } });
+  const [lang, setLang] = useState(() => { if (_hp.lang && T[_hp.lang]) return _hp.lang; try { return localStorage.getItem(LANG_KEY) || "en"; } catch { return "en"; } });
   const t = (k: string) => T[lang]?.[k] ?? T.en[k] ?? k;
   const cl = (l: string) => { setLang(l); try { localStorage.setItem(LANG_KEY, l); } catch {} };
-  const [dI, setDI] = useState(3); const [dpI, setDpI] = useState(1); const [pI, setPI] = useState(0);
-  const [fF, setFF] = useState(20); const [fT, setFT] = useState(75); const [sm, setSm] = useState<SortMode>("both");
+  const [dI, setDI] = useState(() => { const v = Number(_hp.det); return v >= 0 && v < DETECTOR_PRESETS.length ? v : 3; });
+  const [dpI, setDpI] = useState(() => { const v = Number(_hp.disp); return v >= 0 && v < DISPLAY_PRESETS.length ? v : 1; });
+  const [pI, setPI] = useState(() => { const v = Number(_hp.pitch); return v >= 0 && v < PITCH_OPTIONS.length ? v : 0; });
+  const [fF, setFF] = useState(() => { const v = Number(_hp.from); return v >= 5 && v <= 200 ? v : 20; });
+  const [fT, setFT] = useState(() => { const v = Number(_hp.to); return v >= 5 && v <= 200 ? v : 75; });
+  const [sm, setSm] = useState<SortMode>(() => (["both", "vPriority", "vOnly"] as SortMode[]).includes(_hp.mode as SortMode) ? _hp.mode as SortMode : "both");
+  const [copied, setCopied] = useState(false);
+  const [compared, setCompared] = useState<number[]>([]);
+  useEffect(() => { window.location.hash = `det=${dI}&disp=${dpI}&pitch=${pI}&from=${fF}&to=${fT}&mode=${sm}&lang=${lang}`; }, [dI, dpI, pI, fF, fT, sm, lang]);
+  const copyLink = () => { navigator.clipboard.writeText(window.location.href).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); };
   const det = DETECTOR_PRESETS[dI], disp = DISPLAY_PRESETS[dpI], pitch = PITCH_OPTIONS[pI];
   const lo = Math.min(fF, fT), hi = Math.max(fF, fT);
   const results = useMemo(() => Array.from({ length: hi - lo + 1 }, (_, i) => {
@@ -247,7 +268,7 @@ export default function App() {
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v3.5</span></h1><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.0</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
       </div>
       <p style={{ fontSize: 13, color: C.dim, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720 }}>{t("subtitle")}</p>
 
@@ -293,7 +314,7 @@ export default function App() {
             <TH align="right" tip={t("tipWorst")}>{t("colWorst")}</TH>
             <TH align="right" tip={t("tipMmH")}>{t("colMmH")}</TH><TH align="right" tip={t("tipMmV")}>{t("colMmV")}</TH>
           </tr></thead>
-          <tbody>{sorted.map((r, i) => { const isT = top5.has(r.f); const sv = sm === "both" ? r.score : r.v.err; const isIdeal = r.h.err < 0.01 && r.v.err < 0.01; return (<tr key={r.f} style={{ borderBottom: `1px solid ${C.bg}`, background: isIdeal ? "#00ff8812" : isT ? sbg(sv) : "transparent" }}>
+          <tbody>{sorted.map((r, i) => { const isT = top5.has(r.f); const sv = sm === "both" ? r.score : r.v.err; const isIdeal = r.h.err < 0.01 && r.v.err < 0.01; const cmpI = compared.indexOf(r.f); return (<tr key={r.f} onClick={() => setCompared(p => p.includes(r.f) ? p.filter(x => x !== r.f) : p.length < 3 ? [...p, r.f] : p)} style={{ borderBottom: `1px solid ${C.bg}`, background: isIdeal ? "#00ff8812" : isT ? sbg(sv) : "transparent", cursor: "pointer", borderLeft: cmpI >= 0 ? `3px solid ${CMP_COLORS[cmpI]}` : "3px solid transparent" }}>
             <td style={td("center", 30)}>{isIdeal && <span style={{ fontSize: 16, color: "#00ff88", display: "inline-block", animation: "jackpot-pulse 2s ease-in-out infinite" }}>✦</span>}</td>
             <td style={{ ...td("center"), fontWeight: isT ? 700 : 400, color: isT ? "#fff" : C.text }}>{r.f}{i < 5 && <span style={{ fontSize: 9, color: C.green, marginLeft: 6, background: `${C.green}1a`, padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>#{i + 1}</span>}{isIdeal && <span style={{ fontSize: 9, color: "#00ff88", marginLeft: 6, background: "#00ff8833", padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>IDEAL</span>}</td>
             <td style={{ ...td("right"), color: sm === "vOnly" ? C.hint : C.H }}>{r.h.ppm.toFixed(3)}</td>
@@ -306,6 +327,36 @@ export default function App() {
           </tr>); })}</tbody>
         </table></div>
       </div>
+
+      {compared.length > 0 && <Cd title={t("compare")}><div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        {compared.map((f, ci) => { const r = results.find(x => x.f === f); if (!r) return null; const sv = sm === "both" ? r.score : r.v.err; return (
+          <div key={f} style={{ flex: "1 1 280px", background: "#0e0e0e", padding: "12px 14px", borderRadius: "0 6px 6px 0", borderLeft: `3px solid ${CMP_COLORS[ci]}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: mn }}>F = {f} mm</span>
+              <button onClick={() => setCompared(p => p.filter(x => x !== f))} style={{ background: "transparent", border: "none", color: C.hint, cursor: "pointer", fontSize: 16, padding: "0 4px" }}>✕</button>
+            </div>
+            <div style={{ fontSize: 12, fontFamily: mn, color: C.dim, lineHeight: 1.8 }}>
+              <div>px/mrad <span style={{ color: C.H }}>H: {r.h.ppm.toFixed(3)}</span>, <span style={{ color: C.V }}>V: {r.v.ppm.toFixed(3)}</span></div>
+              <div>err <span style={{ color: sc(r.h.err) }}>H: {r.h.err.toFixed(2)}%</span>, <span style={{ color: sc(r.v.err) }}>V: {r.v.err.toFixed(2)}%</span></div>
+              <div>total: <span style={{ color: sc(sv), fontWeight: 700 }}>{sv.toFixed(2)}%</span></div>
+            </div>
+            <div style={{ marginTop: 10, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
+              <div style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{t("distTable")}</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 11 }}>
+                <thead><tr>
+                  <th style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>D</th>
+                  <th style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>H, mm</th>
+                  <th style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>V, mm</th>
+                </tr></thead>
+                <tbody>{DISTANCES.map(d => <tr key={d}>
+                  <td style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td>
+                  <td style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{(r.h.mm100 * d / 100).toFixed(2)}</td>
+                  <td style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{(r.v.mm100 * d / 100).toFixed(2)}</td>
+                </tr>)}</tbody>
+              </table>
+            </div>
+          </div>); })}
+      </div><p style={{ fontSize: 11, color: C.hint, margin: "10px 0 0" }}>{t("compareHint")}</p></Cd>}
 
       <Cd title={t("colDesc")}><div style={{ fontSize: 12, color: C.dim, lineHeight: 2 }}>
         <div><strong style={{ color: C.text }}>{t("colF")}</strong> — {t("descF")}</div>
