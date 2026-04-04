@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
 
 interface Preset { label: string; w: number; h: number }
@@ -58,7 +58,7 @@ const T: Record<string, Record<string, string>> = {
     why2: "На 500–1000 м ошибка = реальное отклонение попадания.",
     why3: "Правильный объектив: 1 мрад = ровно N пикселей.",
     copyLink: "Скопировать ссылку", linkCopied: "✓ Скопировано",
-    compare: "Сравнение", compareHint: "Кликните на строку таблицы чтобы добавить в сравнение (макс. 3)",
+    compare: "Сравнение", compareHint: "Кликните на строку таблицы чтобы добавить в сравнение (макс. 9)",
     distTable: "Размер 1 пикселя на дистанции",
   },
   en: {
@@ -99,7 +99,7 @@ const T: Record<string, Record<string, string>> = {
     descPpmV: "Same V.", descErrV: "V deviation.", descWorst: "Overall. Sorted by this.", descMm: "Pixel size 100m.",
     whyTitle: "Why it matters", why1: "Reticle on pixels. Non-integer = drift.", why2: "500-1000m = real miss.", why3: "Right lens: 1 mrad = N px.",
     copyLink: "Copy link", linkCopied: "✓ Copied",
-    compare: "Compare", compareHint: "Click a table row to add to comparison (max 3)",
+    compare: "Compare", compareHint: "Click a table row to add to comparison (max 9)",
     distTable: "1 pixel size at distance",
   },
   zh: {
@@ -131,7 +131,7 @@ const T: Record<string, Record<string, string>> = {
     colDesc: "列", descF: "", descPpmH: "", descErrH: "", descPpmV: "", descErrV: "", descWorst: "", descMm: "",
     whyTitle: "原因", why1: "不对齐=舍入", why2: "远距偏移", why3: "选对镜头",
     copyLink: "复制链接", linkCopied: "✓ 已复制",
-    compare: "比较", compareHint: "点击表格行添加到比较（最多3）",
+    compare: "比较", compareHint: "点击表格行添加到比较（最多9）",
     distTable: "像素在距离处的大小",
   },
 };
@@ -139,7 +139,7 @@ const LANG_KEY = "rika-calc-lang";
 const DETECTOR_PRESETS: Preset[] = [{label:"256×192",w:256,h:192},{label:"384×288",w:384,h:288},{label:"640×480",w:640,h:480},{label:"640×512",w:640,h:512},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024}];
 const DISPLAY_PRESETS: Preset[] = [{label:"640×480",w:640,h:480},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024},{label:"1920×1080",w:1920,h:1080},{label:"2560×2560",w:2560,h:2560}];
 const PITCH_OPTIONS = [12, 15, 17, 25];
-const CMP_COLORS = ["#00ccff", "#ff66ff", "#ffcc00"];
+const CMP_COLORS = ["#00ccff", "#ff66ff", "#ffcc00", "#00ff88", "#ff6644", "#aa88ff", "#88ddff", "#ffaa33", "#ff4488"];
 const DISTANCES = [100, 200, 300, 500, 700, 1000];
 function parseHash(): Record<string, string> { try { const p: Record<string, string> = {}; window.location.hash.slice(1).split('&').forEach(s => { const [k, v] = s.split('='); if (k && v) p[k] = v; }); return p; } catch { return {}; } }
 const _hp = parseHash();
@@ -200,7 +200,16 @@ const iS: React.CSSProperties = { background: "#080808", color: "#e8e8e8", borde
 function td(a: string, w?: number): React.CSSProperties { return { padding: "7px 10px", textAlign: a as any, color: C.text, whiteSpace: "nowrap", ...(w ? { width: w } : {}) }; }
 function PB({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) { return (<div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 140, flex: "1 1 140px" }}><label style={{ fontSize: 11, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>{children}<span style={{ fontSize: 10, color: C.hint, lineHeight: 1.5, maxWidth: 220 }}>{hint}</span></div>); }
 function Sel({ value, onChange, options, render }: { value: number; onChange: (v: number) => void; options: any[]; render: (o: any) => string }) { return (<select value={value} onChange={e => onChange(Number(e.target.value))} style={iS}>{options.map((o: any, i: number) => <option key={i} value={i}>{render(o)}</option>)}</select>); }
-function Nm({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) { return <input type="number" value={value} min={min} max={max} onChange={e => onChange(Math.max(min, Math.min(max, Number(e.target.value))))} style={{ ...iS, width: 90 }} />; }
+function Nm({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
+  const [draft, setDraft] = useState<string>(String(value));
+  const committed = useRef(value);
+  if (value !== committed.current) { committed.current = value; setDraft(String(value)); }
+  return <input type="number" value={draft} min={min} max={max}
+    onChange={e => setDraft(e.target.value)}
+    onBlur={() => { const n = Math.max(min, Math.min(max, Number(draft) || min)); committed.current = n; setDraft(String(n)); onChange(n); }}
+    onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+    style={{ ...iS, width: 90 }} />;
+}
 function Cd({ title, children }: { title?: string; children: React.ReactNode }) { return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>{title && <div style={sS}>{title}</div>}{children}</div>); }
 function TH({ children, align, w, color, tip }: { children?: React.ReactNode; align?: string; w?: number; color?: string; tip?: string }) { return (<th data-tip={tip || undefined} style={{ padding: "10px", textAlign: (align || "left") as any, width: w, fontSize: 10, color: color || C.dim, fontWeight: 600, whiteSpace: "nowrap", fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.04em", cursor: tip ? "help" : "default" }}>{children}</th>); }
 const CTip = ({ active, payload }: any) => { if (!active || !payload?.length) return null; const d = payload[0]?.payload; if (!d) return null; return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", fontFamily: mn, fontSize: 11, color: C.text, lineHeight: 1.8 }}><div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>F={d.f}mm</div><div><span style={{ color: C.H }}>H:</span> {d.eH.toFixed(2)}%</div><div><span style={{ color: C.V }}>V:</span> {d.eV.toFixed(2)}%</div></div>); };
@@ -268,7 +277,7 @@ export default function App() {
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.0</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.1</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
       </div>
       <p style={{ fontSize: 13, color: C.dim, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720 }}>{t("subtitle")}</p>
 
@@ -314,7 +323,7 @@ export default function App() {
             <TH align="right" tip={t("tipWorst")}>{t("colWorst")}</TH>
             <TH align="right" tip={t("tipMmH")}>{t("colMmH")}</TH><TH align="right" tip={t("tipMmV")}>{t("colMmV")}</TH>
           </tr></thead>
-          <tbody>{sorted.map((r, i) => { const isT = top5.has(r.f); const sv = sm === "both" ? r.score : r.v.err; const isIdeal = r.h.err < 0.01 && r.v.err < 0.01; const cmpI = compared.indexOf(r.f); return (<tr key={r.f} onClick={() => setCompared(p => p.includes(r.f) ? p.filter(x => x !== r.f) : p.length < 3 ? [...p, r.f] : p)} style={{ borderBottom: `1px solid ${C.bg}`, background: isIdeal ? "#00ff8812" : isT ? sbg(sv) : "transparent", cursor: "pointer", borderLeft: cmpI >= 0 ? `3px solid ${CMP_COLORS[cmpI]}` : "3px solid transparent" }}>
+          <tbody>{sorted.map((r, i) => { const isT = top5.has(r.f); const sv = sm === "both" ? r.score : r.v.err; const isIdeal = r.h.err < 0.01 && r.v.err < 0.01; const cmpI = compared.indexOf(r.f); return (<tr key={r.f} onClick={() => setCompared(p => p.includes(r.f) ? p.filter(x => x !== r.f) : p.length < 9 ? [...p, r.f] : p)} style={{ borderBottom: `1px solid ${C.bg}`, background: isIdeal ? "#00ff8812" : isT ? sbg(sv) : "transparent", cursor: "pointer", borderLeft: cmpI >= 0 ? `3px solid ${CMP_COLORS[cmpI]}` : "3px solid transparent" }}>
             <td style={td("center", 30)}>{isIdeal && <span style={{ fontSize: 16, color: "#00ff88", display: "inline-block", animation: "jackpot-pulse 2s ease-in-out infinite" }}>✦</span>}</td>
             <td style={{ ...td("center"), fontWeight: isT ? 700 : 400, color: isT ? "#fff" : C.text }}>{r.f}{i < 5 && <span style={{ fontSize: 9, color: C.green, marginLeft: 6, background: `${C.green}1a`, padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>#{i + 1}</span>}{isIdeal && <span style={{ fontSize: 9, color: "#00ff88", marginLeft: 6, background: "#00ff8833", padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>IDEAL</span>}</td>
             <td style={{ ...td("right"), color: sm === "vOnly" ? C.hint : C.H }}>{r.h.ppm.toFixed(3)}</td>
