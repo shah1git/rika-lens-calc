@@ -76,7 +76,7 @@ const T: Record<string, Record<string, string>> = {
     tipRowClick: "Кликните чтобы раскрыть таблицу дистанций.", tipPosCell: "мм — штрих сетки сдвинут от идеальной позиции на",
   },
   en: {
-    title: "Lens Selection", subtitle: "Find focal length where 1 mrad = integer display pixels",
+    title: "Objective Lens Selection", subtitle: "Find the focal length at which 1 mrad fits exactly into an integer number of microdisplay pixels",
     params: "Optical Parameters", detector: "Sensor", detectorHint: "IR resolution.", pitch: "Pixel pitch", pitchHint: "µm.",
     display: "Microdisplay", displayHint: "Eyepiece resolution.",
     focalFrom: "Focal from", focalFromHint: "Start.", focalTo: "Focal to", focalToHint: "End. Step 1mm.",
@@ -131,7 +131,7 @@ const T: Record<string, Record<string, string>> = {
     tipRowClick: "Click to expand distance tables.", tipPosCell: "mm — mark shifted from ideal position at",
   },
   zh: {
-    title: "镜头选择", subtitle: "1mrad=整数像素",
+    title: "物镜选择", subtitle: "寻找1毫弧度精确对应微显示器整数像素数的焦距",
     params: "参数", detector: "传感器", detectorHint: "分辨率", pitch: "间距", pitchHint: "µm",
     display: "显示器", displayHint: "目镜", focalFrom: "焦距起", focalFromHint: "", focalTo: "焦距止", focalToHint: "",
     computed: "原理", scaleH: "缩放H", scaleV: "缩放V", scaleExplain: "传感器÷显示器",
@@ -331,7 +331,7 @@ export default function App() {
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.5.0</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.5.1</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
       </div>
       <p style={{ fontSize: 16, color: C.text, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720, fontWeight: 500 }}>{t("subtitle")}</p>
 
