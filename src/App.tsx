@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
 
 interface Preset { label: string; w: number; h: number }
@@ -109,8 +109,8 @@ const T: Record<string, Record<string, string>> = {
   },
 };
 const LANG_KEY = "rika-calc-lang";
-const DETECTOR_PRESETS: Preset[] = [{label:"256×192",w:256,h:192},{label:"384×288",w:384,h:288},{label:"640×480",w:640,h:480},{label:"640×512",w:640,h:512},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024}];
-const DISPLAY_PRESETS: Preset[] = [{label:"640×480",w:640,h:480},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024},{label:"1920×1080",w:1920,h:1080},{label:"2560×2560",w:2560,h:2560}];
+const DETECTOR_PRESETS: Preset[] = [{label:"384×288",w:384,h:288},{label:"640×480",w:640,h:480},{label:"640×512",w:640,h:512},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024}];
+const DISPLAY_PRESETS: Preset[] = [{label:"640×480",w:640,h:480},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024},{label:"1920×1080",w:1920,h:1080}];
 const PITCH_OPTIONS = [12, 15, 17, 25];
 
 function calcAxis(sR: number, dR: number, p: number, f: number): AxisResult {
@@ -169,18 +169,9 @@ const iS: React.CSSProperties = { background: "#080808", color: "#e8e8e8", borde
 function td(a: string, w?: number): React.CSSProperties { return { padding: "7px 10px", textAlign: a as any, color: C.text, whiteSpace: "nowrap", ...(w ? { width: w } : {}) }; }
 function PB({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) { return (<div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 140, flex: "1 1 140px" }}><label style={{ fontSize: 11, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>{children}<span style={{ fontSize: 10, color: C.hint, lineHeight: 1.5, maxWidth: 220 }}>{hint}</span></div>); }
 function Sel({ value, onChange, options, render }: { value: number; onChange: (v: number) => void; options: any[]; render: (o: any) => string }) { return (<select value={value} onChange={e => onChange(Number(e.target.value))} style={iS}>{options.map((o: any, i: number) => <option key={i} value={i}>{render(o)}</option>)}</select>); }
-function Nm({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
-  const [draft, setDraft] = useState<string>(String(value));
-  const committed = React.useRef(value);
-  if (value !== committed.current) { committed.current = value; setDraft(String(value)); }
-  return <input type="number" value={draft} min={min} max={max}
-    onChange={e => setDraft(e.target.value)}
-    onBlur={() => { const n = Math.max(min, Math.min(max, Number(draft) || min)); committed.current = n; setDraft(String(n)); onChange(n); }}
-    onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-    style={{ ...iS, width: 90 }} />;
-}
+function Nm({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) { return <input type="number" value={value} min={min} max={max} onChange={e => onChange(Math.max(min, Math.min(max, Number(e.target.value))))} style={{ ...iS, width: 90 }} />; }
 function Cd({ title, children }: { title?: string; children: React.ReactNode }) { return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>{title && <div style={sS}>{title}</div>}{children}</div>); }
-function TH({ children, align, w, color, tip }: { children?: React.ReactNode; align?: string; w?: number; color?: string; tip?: string }) { return (<th data-tip={tip || undefined} style={{ padding: "10px", textAlign: (align || "left") as any, width: w, fontSize: 10, color: color || C.dim, fontWeight: 600, whiteSpace: "nowrap", fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.04em", cursor: tip ? "help" : "default" }}>{children}</th>); }
+function TH({ children, align, w, color, tip }: { children?: React.ReactNode; align?: string; w?: number; color?: string; tip?: string }) { return (<th title={tip} style={{ padding: "10px", textAlign: (align || "left") as any, width: w, fontSize: 10, color: color || C.dim, fontWeight: 600, whiteSpace: "nowrap", fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.04em", cursor: tip ? "help" : "default" }}>{children}</th>); }
 const CTip = ({ active, payload }: any) => { if (!active || !payload?.length) return null; const d = payload[0]?.payload; if (!d) return null; return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", fontFamily: mn, fontSize: 11, color: C.text, lineHeight: 1.8 }}><div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>F={d.f}mm</div><div><span style={{ color: C.H }}>H:</span> {d.eH.toFixed(2)}%</div><div><span style={{ color: C.V }}>V:</span> {d.eV.toFixed(2)}%</div></div>); };
 
 function SortMode({ mode, setMode, t }: { mode: SortMode; setMode: (m: SortMode) => void; t: (k: string) => string }) {
@@ -220,7 +211,7 @@ export default function App() {
   const [lang, setLang] = useState(() => { try { return localStorage.getItem(LANG_KEY) || "en"; } catch { return "en"; } });
   const t = (k: string) => T[lang]?.[k] ?? T.en[k] ?? k;
   const cl = (l: string) => { setLang(l); try { localStorage.setItem(LANG_KEY, l); } catch {} };
-  const [dI, setDI] = useState(3); const [dpI, setDpI] = useState(1); const [pI, setPI] = useState(0);
+  const [dI, setDI] = useState(2); const [dpI, setDpI] = useState(1); const [pI, setPI] = useState(0);
   const [fF, setFF] = useState(20); const [fT, setFT] = useState(75); const [sm, setSm] = useState<SortMode>("both");
   const det = DETECTOR_PRESETS[dI], disp = DISPLAY_PRESETS[dpI], pitch = PITCH_OPTIONS[pI];
   const lo = Math.min(fF, fT), hi = Math.max(fF, fT);
@@ -238,7 +229,7 @@ export default function App() {
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v3.1</span></h1><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")}</h1><LangSw lang={lang} setLang={cl} />
       </div>
       <p style={{ fontSize: 13, color: C.dim, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720 }}>{t("subtitle")}</p>
 
