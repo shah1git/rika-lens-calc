@@ -167,6 +167,7 @@ const DISPLAY_PRESETS: Preset[] = [
   { label: "1024×768", w: 1024, h: 768 },
   { label: "1280×1024", w: 1280, h: 1024 },
   { label: "1920×1080", w: 1920, h: 1080 },
+  { label: "2560×2560", w: 2560, h: 2560 },
 ];
 const PITCH_OPTIONS = [12, 15, 17, 25];
 
