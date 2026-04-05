@@ -49,11 +49,31 @@
 - Ideal появляется только при совпадении аспектов сенсора и дисплея (например, 640×480 + 1024×768)
 
 ### URL sharing
-- Все параметры (det, disp, pitch, from, to, mode, lang) сохраняются в `window.location.hash`
+- Single: `tab=single&det=&disp=&pitch=&from=&to=&mode=&lang=` в `window.location.hash`
+- Lineup: `tab=lineup&from=&to=&mode=&agg=&thr=&lang=&c1=detI,pitchI,dispI&...`
 - При загрузке: парсится hash → используется как начальные значения useState
 - При изменении параметров: hash обновляется через `useEffect`
 - `parseHash()` и `_hp` определены на уровне модуля — вызываются один раз при загрузке
 - Кнопка «Скопировать ссылку» рядом с переключателем языка, обратная связь «✓ Скопировано» на 2 сек
+
+### Вкладки (Tab)
+- Два режима: `"single"` (один прибор) и `"lineup"` (продуктовая линейка)
+- Состояние в `tab` state, сохраняется в URL hash (`tab=single` / `tab=lineup`)
+- Вкладки — кнопки в стиле SortMode (minimal, активная с highlight + border)
+- Single: вся оригинальная функциональность без изменений
+- Lineup: подбор объективов для нескольких конфигураций приборов
+
+### Продуктовая линейка (Lineup)
+- `lCfg: LConfig[]` — до 6 конфигураций (мин. 2), каждая: name, detI, pitchI, dispI
+- `lFF, lFT` — диапазон фокусных (общий для всех конфигураций)
+- `agg: AggMode` — режим агрегации: `"max"` / `"avg"` / `"coverage"`
+- `thr` — порог для режима coverage (0.1–10%)
+- `lExp` — раскрытая строка lineup-таблицы (F value)
+- Вычисления: `lResults` → `lSorted` → `lTop5` (аналогично single)
+- Таблица: колонки `#, F, Config1%, Config2%, ..., Aggregate, Coverage`
+- Раскрытая строка: для каждой конфигурации — px/mrad, ошибки, таблицы дистанций
+- URL hash для lineup: `tab=lineup&from=&to=&mode=&agg=&thr=&lang=&c1=detI,pitchI,dispI&c2=...`
+- Цвета конфигураций: `CMP_COLORS[ci]`
 
 ### Сравнение конфигураций (Compare)
 - Добавление в сравнение — через кнопку в раскрытой строке (макс. 9)
