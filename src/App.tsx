@@ -666,6 +666,12 @@ export default function App() {
       </div></Cd>
 
       <Cd title={t("configs")}>
+        <div style={{ display: "flex", gap: 10, paddingLeft: 15, marginBottom: 6 }}>
+          <div style={{ width: 120 }}><span style={{ fontSize: 10, color: C.hint, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("configName")}</span></div>
+          <div style={{ width: 140 }} title={t("detectorHint")}><span style={{ fontSize: 10, color: C.hint, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", cursor: "help" }}>{t("detector")}</span></div>
+          <div style={{ width: 90 }} title={t("pitchHint")}><span style={{ fontSize: 10, color: C.hint, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", cursor: "help" }}>{t("pitch")}</span></div>
+          <div style={{ width: 140 }} title={t("displayHint")}><span style={{ fontSize: 10, color: C.hint, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", cursor: "help" }}>{t("display")}</span></div>
+        </div>
         {lCfg.map((cfg, ci) => (
           <div key={ci} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderLeft: `3px solid ${CMP_COLORS[ci]}`, paddingLeft: 12, marginBottom: 8, flexWrap: "wrap" }}>
             <input type="text" placeholder={lang === "ru" ? `Конфиг ${ci+1}` : lang === "zh" ? `配置${ci+1}` : `Config ${ci+1}`}
