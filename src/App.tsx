@@ -5,7 +5,7 @@ interface Preset { label: string; w: number; h: number }
 interface AxisResult { ppm: number; err: number; mm100: number }
 interface RowResult { f: number; h: AxisResult; v: AxisResult; score: number }
 type SortMode = "both" | "vPriority" | "vOnly";
-type AggMode = "max" | "avg" | "coverage";
+type AggMode = "none" | "max" | "avg" | "coverage";
 interface LConfig { name: string; detI: number; pitchI: number; dispI: number }
 interface LCfgResult { h: AxisResult; v: AxisResult; score: number }
 interface LRow { f: number; cfgs: LCfgResult[]; agg: number; covCount?: number }
@@ -86,14 +86,20 @@ const T: Record<string, Record<string, string>> = {
     lineupSubtitle: "Подбор объективов для переиспользования в нескольких конфигурациях приборов",
     configs: "Конфигурации приборов", configName: "Название", addConfig: "+ Добавить конфигурацию",
     focalRange: "Диапазон фокусных (общий)",
-    aggMode: "Режим агрегации", aggMax: "Наихудший случай", aggMaxDesc: "Итоговая = максимум ошибок. Гарантирует что объектив не хуже этого значения ни в одном приборе.",
-    aggAvg: "Среднее", aggAvgDesc: "Итоговая = среднее ошибок. Показывает лучший в среднем объектив. Может скрывать провал в одной конфигурации.",
-    aggCov: "Покрытие", aggCovDesc: "Считает в скольких конфигурациях ошибка ≤ порога. Отвечает на вопрос: в скольких приборах можно переиспользовать этот объектив?",
+    aggMode: "Режим агрегации",
+    aggNone: "Без агрегации", aggNoneDesc: "Сортировка по F. Сводная колонка скрыта — сравнивайте ошибки конфигураций вручную.",
+    aggMax: "Наихудший случай", aggMaxDesc: "Итоговая = max ошибок. Пример: конфиги 0.5%, 3.2% → итог 3.2%. Гарантия: объектив не хуже этого значения ни в одном приборе.",
+    aggAvg: "Среднее", aggAvgDesc: "Итоговая = среднее. Пример: 0.5%, 3.2% → итог 1.85%. Лучший «в среднем». Внимание: может скрывать провал в одном конфиге.",
+    aggCov: "Покрытие", aggCovDesc: "Считает конфигурации с ошибкой ≤ порога. Пример: порог 1%, ошибки 0.5%, 3.2%, 0.8% → 2/3. В скольких приборах годится этот объектив?",
     threshold: "Порог", coverage: "Покрытие", outOf: "из",
     lineupTableTitle: "Результаты — переиспользуемость объективов ↑", colAgg: "Агрегат",
-    tipAggMax: "Берётся наибольшая ошибка среди всех конфигураций. Гарантирует что объектив не хуже указанной ошибки ни в одном приборе. Консервативный, безопасный подход.",
-    tipAggAvg: "Среднее арифметическое ошибок. Показывает объектив, который в среднем лучше всех. Внимание: может скрывать провал в одной конфигурации.",
-    tipAggCov: "Считает в скольких конфигурациях ошибка ниже порога. Отвечает на вопрос: в скольких приборах я могу переиспользовать этот объектив? Наиболее близкий к бизнес-задаче подбора.",
+    tipAggNone: "Агрегация отключена. Строки отсортированы по фокусному расстоянию (по возрастанию). Сводная колонка скрыта. Используйте для ручного сравнения ошибок по каждой конфигурации без автоматического ранжирования.",
+    tipAggMax: "Наихудший случай. Формула: max(ошибка₁, ошибка₂, …). Сортировка по максимуму — сверху объективы, хорошие ВО ВСЕХ конфигурациях. Пример: ошибки 0.5%, 1.2%, 0.3% → итог 1.2%. Если итог мал — объектив гарантированно работает в каждом приборе.",
+    tipAggAvg: "Среднее арифметическое. Формула: (ошибка₁ + … + ошибкаₙ) ÷ N. Сортировка по среднему — сверху лучшие «в среднем». Пример: ошибки 0.5%, 4.0%, 0.3% → итог 1.6%. Внимание: провал 4% в одном конфиге «размазан» по среднему и может быть незаметен.",
+    tipAggCov: "Покрытие. Считает конфигурации с ошибкой ≤ порога. Пример: порог 1%, ошибки 0.5%, 3.2%, 0.8% → 2 из 3 проходят. Сортировка: по количеству «хороших» конфигов (↓), при равном — по max ошибке (↑). Ответ на бизнес-вопрос: в скольких приборах можно переиспользовать этот объектив?",
+    tipLineupRank: "Позиция в рейтинге по выбранному режиму агрегации. «Без агрегации» — по фокусному расстоянию.",
+    tipLineupCfgCol: "Итоговая ошибка конфигурации, %. Зависит от приоритета осей: «Обе» = max(H,V), «Приоритет V» / «Только V» = V. Зелёный < 1%, жёлтый < 5%, красный ≥ 5%.",
+    tipLineupCovCol: "Сколько конфигураций прошли порог. Формат: X/N (X — прошли, N — всего).",
   },
   en: {
     title: "Objective Lens Selection", subtitle: "Find the focal length at which 1 mrad fits exactly into an integer number of microdisplay pixels",
@@ -159,14 +165,20 @@ const T: Record<string, Record<string, string>> = {
     lineupSubtitle: "Find lenses reusable across multiple device configurations",
     configs: "Device Configurations", configName: "Name", addConfig: "+ Add configuration",
     focalRange: "Focal range (shared)",
-    aggMode: "Aggregation mode", aggMax: "Worst Case", aggMaxDesc: "Overall = max error. Guarantees the lens is no worse than this value in any device.",
-    aggAvg: "Average", aggAvgDesc: "Overall = average error. Shows the best average lens. May hide a failure in one configuration.",
-    aggCov: "Coverage", aggCovDesc: "Counts how many configurations have error ≤ threshold. Answers: in how many devices can this lens be reused?",
+    aggMode: "Aggregation mode",
+    aggNone: "None", aggNoneDesc: "Sort by F. No aggregate column — compare per-config errors manually.",
+    aggMax: "Worst Case", aggMaxDesc: "Overall = max error. Example: configs 0.5%, 3.2% → result 3.2%. Guarantees the lens is no worse than this in any device.",
+    aggAvg: "Average", aggAvgDesc: "Overall = average. Example: 0.5%, 3.2% → result 1.85%. Best on average. Warning: may mask a failure in one config.",
+    aggCov: "Coverage", aggCovDesc: "Counts configs with error ≤ threshold. Example: threshold 1%, errors 0.5%, 3.2%, 0.8% → 2/3. In how many devices can this lens be reused?",
     threshold: "Threshold", coverage: "Coverage", outOf: "of",
     lineupTableTitle: "Results — lens reusability ↑", colAgg: "Aggregate",
-    tipAggMax: "Takes the largest error among all configurations. Guarantees the lens is no worse than this value in any device. Conservative, safe approach.",
-    tipAggAvg: "Arithmetic mean of errors. Shows the lens that is best on average. Warning: may hide a failure in one configuration.",
-    tipAggCov: "Counts how many configurations have error below the threshold. Answers: in how many devices can I reuse this lens? Closest to the business task of lens selection.",
+    tipAggNone: "Aggregation disabled. Rows sorted by focal length (ascending). Aggregate column hidden. Use to manually compare errors across configurations without automatic ranking.",
+    tipAggMax: "Worst Case. Formula: max(err₁, err₂, …). Sorted by maximum — top rows are lenses good in ALL configurations. Example: errors 0.5%, 1.2%, 0.3% → result 1.2%. If result is small, the lens works in every device.",
+    tipAggAvg: "Arithmetic mean. Formula: (err₁ + … + errₙ) ÷ N. Sorted by average — top rows are best on average. Example: errors 0.5%, 4.0%, 0.3% → result 1.6%. Warning: a 4% failure in one config is diluted by the average and may go unnoticed.",
+    tipAggCov: "Coverage. Counts configs with error ≤ threshold. Example: threshold 1%, errors 0.5%, 3.2%, 0.8% → 2 of 3 pass. Sorted by passing count (↓), then by max error (↑). Answers the business question: in how many devices can this lens be reused?",
+    tipLineupRank: "Rank position by selected aggregation mode. 'None' = sorted by focal length.",
+    tipLineupCfgCol: "Configuration error, %. Depends on axis priority: 'Both' = max(H,V), 'V priority'/'V only' = V. Green < 1%, yellow < 5%, red ≥ 5%.",
+    tipLineupCovCol: "How many configurations passed the threshold. Format: X/N (X passed, N total).",
   },
   zh: {
     title: "物镜选择", subtitle: "寻找1毫弧度精确对应微显示器整数像素数的焦距",
@@ -224,14 +236,20 @@ const T: Record<string, Record<string, string>> = {
     lineupSubtitle: "寻找可在多种设备配置中复用的镜头",
     configs: "设备配置", configName: "名称", addConfig: "+ 添加配置",
     focalRange: "焦距范围（共用）",
-    aggMode: "聚合模式", aggMax: "最差情况", aggMaxDesc: "总误差=最大误差。保证镜头在任何设备中都不超过此值。",
-    aggAvg: "平均", aggAvgDesc: "总误差=平均误差。显示平均最佳镜头。可能隐藏单个配置的不良表现。",
-    aggCov: "覆盖率", aggCovDesc: "计算多少配置的误差≤阈值。回答：此镜头可在多少设备中复用？",
+    aggMode: "聚合模式",
+    aggNone: "无聚合", aggNoneDesc: "按焦距排序。无聚合列——手动比较各配置误差。",
+    aggMax: "最差情况", aggMaxDesc: "总=最大误差。示例：0.5%、3.2%→结果3.2%。保证镜头在任何设备中都不超过此值。",
+    aggAvg: "平均", aggAvgDesc: "总=平均。示例：0.5%、3.2%→结果1.85%。平均最佳。注意：可能掩盖单个配置的不良表现。",
+    aggCov: "覆盖率", aggCovDesc: "计算误差≤阈值的配置数。示例：阈值1%，误差0.5%、3.2%、0.8%→2/3。此镜头可在多少设备中复用？",
     threshold: "阈值", coverage: "覆盖率", outOf: "/",
     lineupTableTitle: "结果——镜头复用性↑", colAgg: "聚合",
-    tipAggMax: "取所有配置中的最大误差。保证镜头在任何设备中都不超过此值。保守、安全的方法。",
-    tipAggAvg: "误差的算术平均值。显示平均最佳镜头。注意：可能隐藏某个配置的不良表现。",
-    tipAggCov: "计算有多少配置的误差低于阈值。回答：我可以在多少设备中复用此镜头？最接近业务选型需求。",
+    tipAggNone: "聚合已禁用。按焦距升序排列。聚合列隐藏。用于手动比较各配置误差，无自动排名。",
+    tipAggMax: "最差情况。公式：max(误差₁, 误差₂, …)。按最大值排序——顶部是在所有配置中都好的镜头。示例：误差0.5%、1.2%、0.3%→结果1.2%。如果结果小，镜头在每个设备中都可用。",
+    tipAggAvg: "算术平均。公式：(误差₁+…+误差ₙ)÷N。按平均排序——顶部是平均最佳。示例：误差0.5%、4.0%、0.3%→结果1.6%。注意：某个配置4%的不良表现被平均稀释，可能不被注意。",
+    tipAggCov: "覆盖率。计算误差≤阈值的配置数。示例：阈值1%，误差0.5%、3.2%、0.8%→3个中2个通过。排序：按通过数(↓)，相同时按最大误差(↑)。回答业务问题：此镜头可在多少设备中复用？",
+    tipLineupRank: "按所选聚合模式的排名位置。'无聚合'=按焦距排序。",
+    tipLineupCfgCol: "配置误差，%。取决于轴优先级：'两轴等'=max(H,V)，'V优先'/'仅V'=V。绿<1%，黄<5%，红≥5%。",
+    tipLineupCovCol: "多少配置通过了阈值。格式：X/N（X通过，N总数）。",
   },
 };
 const LANG_KEY = "rika-calc-lang";
@@ -447,7 +465,7 @@ export default function App() {
   });
   const [lFF, setLFF] = useState(() => { if (!isLineup) return 20; const v = Number(_hp.from); return v >= 5 && v <= 200 ? v : 20; });
   const [lFT, setLFT] = useState(() => { if (!isLineup) return 75; const v = Number(_hp.to); return v >= 5 && v <= 200 ? v : 75; });
-  const [agg, setAgg] = useState<AggMode>(() => (["max","avg","coverage"] as AggMode[]).includes(_hp.agg as AggMode) ? _hp.agg as AggMode : "max");
+  const [agg, setAgg] = useState<AggMode>(() => (["none","max","avg","coverage"] as AggMode[]).includes(_hp.agg as AggMode) ? _hp.agg as AggMode : "max");
   const [thr, setThr] = useState(() => { const v = Number(_hp.thr); return v >= 0.1 && v <= 10 ? v : 1; });
   const [lExp, setLExp] = useState<number | null>(null);
 
@@ -483,13 +501,15 @@ export default function App() {
       return { h, v, score: getScore(h, v, sm) };
     });
     let aggVal: number, covCount: number | undefined;
-    if (agg === "max") aggVal = Math.max(...cfgs.map(c => c.score));
+    if (agg === "none") aggVal = 0;
+    else if (agg === "max") aggVal = Math.max(...cfgs.map(c => c.score));
     else if (agg === "avg") aggVal = cfgs.reduce((s, c) => s + c.score, 0) / cfgs.length;
     else { covCount = cfgs.filter(c => c.score <= thr).length; aggVal = covCount; }
     return { f, cfgs, agg: aggVal, covCount } as LRow;
   }), [lCfg, lLo, lHi, sm, agg, thr]);
 
   const lSorted = useMemo(() => [...lResults].sort((a, b) => {
+    if (agg === "none") return a.f - b.f;
     if (agg === "coverage") {
       const d = (b.covCount ?? 0) - (a.covCount ?? 0);
       if (d !== 0) return d;
@@ -503,7 +523,7 @@ export default function App() {
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.7.0</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.7.1</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
       </div>
       {/* Tab buttons */}
       <div style={{ display: "flex", gap: 8, margin: "16px 0 20px" }}>
@@ -691,6 +711,7 @@ export default function App() {
       <Cd title={t("aggMode")}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
           {([
+            { k: "none" as AggMode, l: "aggNone", d: "aggNoneDesc", tp: "tipAggNone" },
             { k: "max" as AggMode, l: "aggMax", d: "aggMaxDesc", tp: "tipAggMax" },
             { k: "avg" as AggMode, l: "aggAvg", d: "aggAvgDesc", tp: "tipAggAvg" },
             { k: "coverage" as AggMode, l: "aggCov", d: "aggCovDesc", tp: "tipAggCov" },
@@ -716,24 +737,24 @@ export default function App() {
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden", marginBottom: 20 }}>
         <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
           <span style={sS}>{t("lineupTableTitle")}</span>
-          <span style={{ fontSize: 11, color: C.hint }}>{agg === "max" ? t("aggMax") : agg === "avg" ? t("aggAvg") : t("aggCov")} · {lSorted.length} {t("tableCount")} {lLo}–{lHi}mm</span>
+          <span style={{ fontSize: 11, color: C.hint }}>{agg === "none" ? t("aggNone") : agg === "max" ? t("aggMax") : agg === "avg" ? t("aggAvg") : t("aggCov")} · {lSorted.length} {t("tableCount")} {lLo}–{lHi}mm</span>
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 12 }}>
             <thead><tr style={{ borderBottom: `1px solid ${C.border}` }}>
-              <TH w={30}>#</TH>
+              <TH w={30} tip={t("tipLineupRank")}>#</TH>
               <TH align="center" tip={t("tipF")}>{t("colF")}</TH>
               {lCfg.map((cfg, ci) => {
                 const cfgName = cfg.name || (lang === "ru" ? `К${ci+1}` : lang === "zh" ? `配${ci+1}` : `C${ci+1}`);
-                return <TH key={ci} align="right" color={CMP_COLORS[ci]}>{cfgName} %</TH>;
+                return <TH key={ci} align="right" color={CMP_COLORS[ci]} tip={t("tipLineupCfgCol")}>{cfgName} %</TH>;
               })}
-              <TH align="right" tip={agg === "max" ? t("tipAggMax") : agg === "avg" ? t("tipAggAvg") : t("tipAggCov")}>{t("colAgg")} {agg !== "coverage" ? "%" : ""}</TH>
-              {agg === "coverage" && <TH align="center">✓</TH>}
+              {agg !== "none" && <TH align="right" tip={agg === "max" ? t("tipAggMax") : agg === "avg" ? t("tipAggAvg") : t("tipAggCov")}>{t("colAgg")} {agg !== "coverage" ? "%" : ""}</TH>}
+              {agg === "coverage" && <TH align="center" tip={t("tipLineupCovCol")}>✓</TH>}
             </tr></thead>
             <tbody>{lSorted.map((row, idx) => {
               const isT5 = lTop5.has(row.f);
               const allIdeal = row.cfgs.every(c => c.h.err < 0.01 && c.v.err < 0.01);
-              const worstScore = agg === "coverage" ? Math.max(...row.cfgs.map(c => c.score)) : row.agg;
+              const worstScore = agg === "none" ? Math.max(...row.cfgs.map(c => c.score)) : agg === "coverage" ? Math.max(...row.cfgs.map(c => c.score)) : row.agg;
               const isLExp = lExp === row.f;
               const scores = row.cfgs.map(c => c.score.toFixed(2));
               const fTipCfgs = row.cfgs.map((c, ci) => {
@@ -751,16 +772,16 @@ export default function App() {
               return (<Fragment key={row.f}>
                 <tr onClick={() => setLExp(prev => prev === row.f ? null : row.f)} style={{
                   borderBottom: `1px solid ${C.bg}`, cursor: "pointer",
-                  background: allIdeal ? "#00ff8812" : isT5 ? sbg(worstScore) : "transparent",
+                  background: allIdeal ? "#00ff8812" : agg !== "none" && isT5 ? sbg(worstScore) : "transparent",
                   borderLeft: isLExp ? `3px solid ${C.green}` : "3px solid transparent",
                 }}>
                   <td style={td("center", 30)}>
                     <span style={{ fontSize: 10, color: C.dim }}>{isLExp ? "▾" : "▸"}</span>
                     {allIdeal && <span style={{ fontSize: 16, color: "#00ff88", display: "inline-block", animation: "jackpot-pulse 2s ease-in-out infinite" }}>✦</span>}
                   </td>
-                  <td title={fTip} style={{ ...td("center"), cursor: "help", fontWeight: isT5 ? 700 : 400, color: isT5 ? "#fff" : C.text }}>
+                  <td title={fTip} style={{ ...td("center"), cursor: "help", fontWeight: agg !== "none" && isT5 ? 700 : 400, color: agg !== "none" && isT5 ? "#fff" : C.text }}>
                     {row.f}
-                    {idx < 5 && <span style={{ fontSize: 9, color: C.green, marginLeft: 6, background: `${C.green}1a`, padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>#{idx + 1}</span>}
+                    {agg !== "none" && idx < 5 && <span style={{ fontSize: 9, color: C.green, marginLeft: 6, background: `${C.green}1a`, padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>#{idx + 1}</span>}
                     {allIdeal && <span style={{ fontSize: 9, color: "#00ff88", marginLeft: 6, background: "#00ff8833", padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>IDEAL</span>}
                   </td>
                   {row.cfgs.map((cfgR, ci) => {
@@ -773,12 +794,12 @@ export default function App() {
                       : `Error ${cfgR.score.toFixed(2)}% for "${cfgName}" (${dPreset.label} → ${dpPreset.label}, ${pVal}µm). px/mrad H: ${cfgR.h.ppm.toFixed(3)}, V: ${cfgR.v.ppm.toFixed(3)}.`;
                     return <td key={ci} title={cfgTip} style={{ ...td("right"), cursor: "help", fontWeight: 600, color: sc(cfgR.score) }}>{cfgR.score.toFixed(2)}</td>;
                   })}
-                  <td title={aggTip} style={{ ...td("right"), cursor: "help", fontWeight: 700, fontSize: 13, color: agg === "coverage" ? (row.covCount === lCfg.length ? C.green : row.covCount === 0 ? C.red : C.yellow) : sc(row.agg) }}>
+                  {agg !== "none" && <td title={aggTip} style={{ ...td("right"), cursor: "help", fontWeight: 700, fontSize: 13, color: agg === "coverage" ? (row.covCount === lCfg.length ? C.green : row.covCount === 0 ? C.red : C.yellow) : sc(row.agg) }}>
                     {agg === "coverage" ? row.covCount : row.agg.toFixed(2)}
-                  </td>
+                  </td>}
                   {agg === "coverage" && <td title={covTip} style={{ ...td("center"), cursor: "help", fontSize: 11, color: row.covCount === lCfg.length ? C.green : C.dim }}>{row.covCount}/{lCfg.length}</td>}
                 </tr>
-                {isLExp && <tr><td colSpan={lCfg.length + 3 + (agg === "coverage" ? 1 : 0)} style={{ padding: 16, background: "#0a0a0a" }}>
+                {isLExp && <tr><td colSpan={lCfg.length + 2 + (agg !== "none" ? 1 : 0) + (agg === "coverage" ? 1 : 0)} style={{ padding: 16, background: "#0a0a0a" }}>
                   {row.cfgs.map((cfgR, ci) => {
                     const cfgName = lCfg[ci].name || (lang === "ru" ? `К${ci+1}` : lang === "zh" ? `配${ci+1}` : `C${ci+1}`);
                     const dPreset = DETECTOR_PRESETS[lCfg[ci].detI], dpPreset = DISPLAY_PRESETS[lCfg[ci].dispI], pVal = PITCH_OPTIONS[lCfg[ci].pitchI];
