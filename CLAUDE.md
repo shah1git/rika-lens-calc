@@ -7,7 +7,11 @@
 
 ## Архитектура
 
-Весь UI — один файл `src/App.tsx`. Нет роутинга, нет стора, нет отдельных компонентов.
+Код разделён на 4 модуля:
+- `src/i18n.ts` — объект T (переводы RU/EN/ZH) + LANG_KEY
+- `src/optics.ts` — интерфейсы (Preset, AxisResult, RowResult, SortMode, PConfig, PCfgResult) + чистые функции (calcAxis, getScore, sortRows, findMultiples)
+- `src/ui.tsx` — палитра C, sc/sbg, пресеты, константы, parseHash, компоненты (Cd, TH, PB, Sel, Nm, CTip, RikaLogo, Flags, LangSw, SortModePanel, Explain)
+- `src/App.tsx` — главный компонент: состояние, computed, JSX обоих табов
 Стили — inline. Единственный CSS-файл `src/global.css` содержит reset, тултипы и анимации.
 
 ## Правила работы с кодом
@@ -50,7 +54,7 @@
 
 ### URL sharing
 - Single: `tab=single&det=&disp=&pitch=&from=&to=&mode=&lang=` в `window.location.hash`
-- Portfolio: `tab=portfolio&from=&to=&mode=&thr=&lang=&c1=detI,pitchI,dispI&n1=name&...&pf=f1,f2,...`
+- Portfolio: `tab=portfolio&from=&to=&mode=&thr=&sort=max|c1|c2|cov&lang=&c1=detI,pitchI,dispI&n1=name&...&pf=f1,f2,...`
 - При загрузке: парсится hash → используется как начальные значения useState
 - При изменении параметров: hash обновляется через `useEffect`
 - `parseHash()` и `_hp` определены на уровне модуля — вызываются один раз при загрузке
@@ -70,14 +74,19 @@
 - `pThr` — порог покрытия (0.1–10%)
 - `pExp` — раскрытая строка (F value), переключается кнопкой ▸ с stopPropagation (отдельная колонка от чекбокса)
 - `pMode` — приоритет осей в портфеле: только `"vOnly"` и `"vPriority"` (режим `"both"` маппится в `"vOnly"`)
-- `pSorted` — useMemo: строки отсортированы по агрегатной ошибке (max V_err по всем конфигурациям), при vPriority tie-break по max H_err
-- Вычисления: `pResults` — массив { f, cfgs: PCfgResult[] } для каждого F, `pSorted` добавляет aggregate/aggH и сортирует
-- Полная таблица: колонки ☐ | ▸ | # | F | конфиг1% | конфиг2% | ... | Агрегат(макс.)
-- Заголовки конфигураций: `cfg.name || "сенсор→дисплей"`
+- `pSort` — текущая сортировка: `"max"` (по Макс.), `"cov"` (по покрытию), `"c1"`.."c6" (по конфигурации)
+- `pSorted` — useMemo: строки с aggregate/aggH/coverage, сортировка зависит от pSort: max=по агрегату, cov=по покрытию desc→агрегат, cN=по V_err конфигурации
+- Вычисления: `pResults` — массив { f, cfgs: PCfgResult[] }, score всегда = v.err. `pSorted` добавляет aggregate/aggH/coverage и сортирует по pSort
+- Полная таблица: колонки ☐ | ▸ | # | F | конфиг1% | конфиг2% | ... | ● / N | Макс.(%)
+- Заголовки конфигураций: кликабельные (сортировка), `cfg.name || "сенсор→дисплей"`, стрелка ↑ у активного
+- Колонка ● / N: покрытие = кол-во конфигов с ошибкой ≤ pThr. Кликабельная (сортировка по покрытию)
+- Колонка Макс.: максимальная ошибка. Кликабельная (возврат к worst case сортировке)
+- Зелёный маркер ● в ячейках таблицы и матрицы: ошибка ≤ pThr
+- Порог покрытия (pThr): input в заголовке таблицы результатов
 - IDEAL (aggregate < 0.01%): пульсирующая ✦ + бейдж IDEAL, топ-5 бейджи
-- Матрица портфеля: для каждой конфигурации показывает ошибку по каждому объективу из портфеля, лучший объектив, покрытие
+- Матрица портфеля: ошибка × конфигурация, зелёный ●, ✦ для нулевых, лучший F, покрытие
 - Покрытие: конфигурация покрыта если есть объектив с ошибкой ≤ pThr, тултип pTipCoverage
-- URL hash: `tab=portfolio&from=&to=&mode=&thr=&lang=&c1=...&n1=...&pf=f1,f2,...`
+- URL hash: `tab=portfolio&from=&to=&mode=&thr=&sort=&lang=&c1=...&n1=...&pf=f1,f2,...`
 - Цвета конфигураций: `CMP_COLORS[ci]`
 
 ### Сравнение конфигураций (Compare)
@@ -110,7 +119,7 @@ git push             # автодеплой на GitHub Pages через Actions
 ## Что НЕ делать
 
 - Не добавлять зависимости кроме recharts
-- Не выносить компоненты в отдельные файлы
+- Компоненты вынесены в ui.tsx — новые компоненты добавлять туда же
 - Не добавлять CSS-фреймворки
 - Не менять `base` в `vite.config.ts` (привязан к имени репо)
 - Не обрезать тексты тултипов — они должны быть подробными
