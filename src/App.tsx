@@ -328,7 +328,7 @@ function Nm({ value, onChange, min, max }: { value: number; onChange: (v: number
     style={{ ...iS, width: 90 }} />;
 }
 function Cd({ title, children }: { title?: string; children: React.ReactNode }) { return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>{title && <div style={sS}>{title}</div>}{children}</div>); }
-function TH({ children, align, w, color, tip }: { children?: React.ReactNode; align?: string; w?: number; color?: string; tip?: string }) { return (<th title={tip || undefined} style={{ padding: "10px", textAlign: (align || "left") as any, width: w, fontSize: 10, color: color || C.dim, fontWeight: 600, whiteSpace: "nowrap", fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.04em", cursor: tip ? "help" : "default" }}>{children}</th>); }
+function TH({ children, align, w, color, tip, onClick }: { children?: React.ReactNode; align?: string; w?: number; color?: string; tip?: string; onClick?: () => void }) { return (<th title={tip || undefined} onClick={onClick} style={{ padding: "10px", textAlign: (align || "left") as any, width: w, fontSize: 10, color: color || C.dim, fontWeight: 600, whiteSpace: "nowrap", fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.04em", cursor: onClick ? "pointer" : tip ? "help" : "default" }}>{children}</th>); }
 const CTip = ({ active, payload }: any) => { if (!active || !payload?.length) return null; const d = payload[0]?.payload; if (!d) return null; return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", fontFamily: mn, fontSize: 11, color: C.text, lineHeight: 1.8 }}><div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>F={d.f}mm</div><div><span style={{ color: C.H }}>H:</span> {d.eH.toFixed(2)}%</div><div><span style={{ color: C.V }}>V:</span> {d.eV.toFixed(2)}%</div></div>); };
 
 function SortMode({ mode, setMode, t }: { mode: SortMode; setMode: (m: SortMode) => void; t: (k: string) => string }) {
@@ -468,6 +468,9 @@ export default function App() {
   const [agg, setAgg] = useState<AggMode>(() => (["none","max","avg","coverage"] as AggMode[]).includes(_hp.agg as AggMode) ? _hp.agg as AggMode : "max");
   const [thr, setThr] = useState(() => { const v = Number(_hp.thr); return v >= 0.1 && v <= 10 ? v : 1; });
   const [lExp, setLExp] = useState<number | null>(null);
+  const [lSort, setLSort] = useState<{col: "f"|"agg"|number; asc: boolean}>(() => ({ col: agg === "none" ? "f" : "agg", asc: agg !== "coverage" }));
+  const handleLSort = (col: "f"|"agg"|number) => setLSort(prev => prev.col === col ? { col, asc: !prev.asc } : { col, asc: col === "agg" && agg === "coverage" ? false : true });
+  useEffect(() => { setLSort({ col: agg === "none" ? "f" : "agg", asc: agg !== "coverage" }); }, [agg]);
 
   useEffect(() => {
     if (tab === "single") {
@@ -509,21 +512,19 @@ export default function App() {
   }), [lCfg, lLo, lHi, sm, agg, thr]);
 
   const lSorted = useMemo(() => [...lResults].sort((a, b) => {
-    if (agg === "none") return a.f - b.f;
-    if (agg === "coverage") {
-      const d = (b.covCount ?? 0) - (a.covCount ?? 0);
-      if (d !== 0) return d;
-      return Math.max(...a.cfgs.map(c => c.score)) - Math.max(...b.cfgs.map(c => c.score));
-    }
-    return a.agg - b.agg;
-  }), [lResults, agg]);
+    let cmp: number;
+    if (lSort.col === "f") { cmp = a.f - b.f; }
+    else if (typeof lSort.col === "number") { cmp = (a.cfgs[lSort.col]?.score ?? 0) - (b.cfgs[lSort.col]?.score ?? 0); }
+    else { cmp = a.agg - b.agg; }
+    return lSort.asc ? cmp : -cmp;
+  }), [lResults, lSort]);
 
   const lTop5 = useMemo(() => new Set(lSorted.slice(0, 5).map(r => r.f)), [lSorted]);
 
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.7.1</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v4.7.2</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
       </div>
       {/* Tab buttons */}
       <div style={{ display: "flex", gap: 8, margin: "16px 0 20px" }}>
@@ -743,13 +744,13 @@ export default function App() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 12 }}>
             <thead><tr style={{ borderBottom: `1px solid ${C.border}` }}>
               <TH w={30} tip={t("tipLineupRank")}>#</TH>
-              <TH align="center" tip={t("tipF")}>{t("colF")}</TH>
+              <TH align="center" tip={t("tipF")} onClick={() => handleLSort("f")}>{t("colF")} {lSort.col === "f" && <span style={{ fontSize: 8 }}>{lSort.asc ? "▲" : "▼"}</span>}</TH>
               {lCfg.map((cfg, ci) => {
                 const cfgName = cfg.name || (lang === "ru" ? `К${ci+1}` : lang === "zh" ? `配${ci+1}` : `C${ci+1}`);
-                return <TH key={ci} align="right" color={CMP_COLORS[ci]} tip={t("tipLineupCfgCol")}>{cfgName} %</TH>;
+                return <TH key={ci} align="right" color={CMP_COLORS[ci]} tip={t("tipLineupCfgCol")} onClick={() => handleLSort(ci)}>{cfgName} % {lSort.col === ci && <span style={{ fontSize: 8 }}>{lSort.asc ? "▲" : "▼"}</span>}</TH>;
               })}
-              {agg !== "none" && <TH align="right" tip={agg === "max" ? t("tipAggMax") : agg === "avg" ? t("tipAggAvg") : t("tipAggCov")}>{t("colAgg")} {agg !== "coverage" ? "%" : ""}</TH>}
-              {agg === "coverage" && <TH align="center" tip={t("tipLineupCovCol")}>✓</TH>}
+              {agg !== "none" && <TH align="right" tip={agg === "max" ? t("tipAggMax") : agg === "avg" ? t("tipAggAvg") : t("tipAggCov")} onClick={() => handleLSort("agg")}>{t("colAgg")} {agg !== "coverage" ? "%" : ""} {lSort.col === "agg" && <span style={{ fontSize: 8 }}>{lSort.asc ? "▲" : "▼"}</span>}</TH>}
+              {agg === "coverage" && <TH align="center" tip={t("tipLineupCovCol")} onClick={() => handleLSort("agg")}>✓ {lSort.col === "agg" && <span style={{ fontSize: 8 }}>{lSort.asc ? "▲" : "▼"}</span>}</TH>}
             </tr></thead>
             <tbody>{lSorted.map((row, idx) => {
               const isT5 = lTop5.has(row.f);
