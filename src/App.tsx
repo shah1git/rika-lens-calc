@@ -81,7 +81,7 @@ const T: Record<string, Record<string, string>> = {
     tipModeVOnly: "Только вертикальная ошибка определяет рейтинг. Горизонталь полностью игнорируется. Максимально прагматичный выбор под баллистику.",
     tipRowClick: "Кликните чтобы раскрыть таблицу дистанций.", tipPosCell: "мм — штрих сетки сдвинут от идеальной позиции на",
     tabSingle: "Один прибор", tabPortfolio: "Портфель объективов",
-    portfolioSubtitle: "Соберите набор стандартных объективов для всей продуктовой линейки. Выбирайте фокусные из таблицы — матрица портфеля покажет покрытие конфигураций.",
+    portfolioSubtitle: "Соберите набор стандартных объективов для всей продуктовой линейки. Таблица отсортирована по ошибке — лучшие наверху. Кликайте на строки чтобы собрать портфель, матрица покажет покрытие.",
     configs: "Конфигурации приборов", configName: "Название", addConfig: "+ Добавить конфигурацию",
     focalRange: "Диапазон фокусных (общий)",
     allFocals: "Все фокусные — выберите для портфеля",
@@ -92,6 +92,10 @@ const T: Record<string, Record<string, string>> = {
     fullCoverage: "✓ Полное покрытие", notCovered: "⚠ Не покрыты:", outOf: "из",
     removeFromPortfolio: "Убрать из портфеля", addToPortfolio: "Добавить в портфель",
     tipPCfgCol: "Итоговая ошибка конфигурации, %. Зависит от приоритета осей: «Обе» = max(H,V), «Приоритет V» / «Только V» = V. Зелёный < 1%, жёлтый < 5%, красный ≥ 5%.",
+    pResultsTitle: "Результаты — по ошибке ↑", pResultsHint: "Кликните на строку чтобы добавить/убрать из портфеля",
+    pAggCol: "Агрегат (макс.)", pPortfolioDesc: "Ошибка округления (%), по режиму приоритета осей",
+    pTipCoverage: "Количество конфигураций, для которых хотя бы один объектив из портфеля даёт ошибку ≤ порога. «Полное покрытие» означает что каждый прибор в линейке имеет подходящий объектив.",
+    tipAggCol: "Максимальная ошибка среди всех конфигураций. Это наихудший случай — гарантирует что объектив не хуже этого значения ни в одном приборе. Строки отсортированы по этому столбцу.",
   },
   en: {
     title: "Objective Lens Selection", subtitle: "Find the focal length at which 1 mrad fits exactly into an integer number of microdisplay pixels",
@@ -154,7 +158,7 @@ const T: Record<string, Record<string, string>> = {
     tipModeVOnly: "Only vertical error determines ranking. Horizontal is fully ignored. Most pragmatic choice for ballistics.",
     tipRowClick: "Click to expand distance tables.", tipPosCell: "mm — mark shifted from ideal position at",
     tabSingle: "Single Device", tabPortfolio: "Lens Portfolio",
-    portfolioSubtitle: "Build a set of standard lenses for your entire product lineup. Pick focal lengths from the table — the portfolio matrix shows configuration coverage.",
+    portfolioSubtitle: "Build a set of standard lenses for your entire product lineup. Table is sorted by error — best on top. Click rows to build your portfolio, the matrix shows coverage.",
     configs: "Device Configurations", configName: "Name", addConfig: "+ Add configuration",
     focalRange: "Focal range (shared)",
     allFocals: "All focal lengths — pick for portfolio",
@@ -165,6 +169,10 @@ const T: Record<string, Record<string, string>> = {
     fullCoverage: "✓ Full coverage", notCovered: "⚠ Not covered:", outOf: "of",
     removeFromPortfolio: "Remove from portfolio", addToPortfolio: "Add to portfolio",
     tipPCfgCol: "Configuration error, %. Depends on axis priority: 'Both' = max(H,V), 'V priority'/'V only' = V. Green < 1%, yellow < 5%, red ≥ 5%.",
+    pResultsTitle: "Results — by error ↑", pResultsHint: "Click a row to add/remove from portfolio",
+    pAggCol: "Aggregate (max)", pPortfolioDesc: "Rounding error (%), by axis priority mode",
+    pTipCoverage: "Number of configurations for which at least one portfolio lens gives error ≤ threshold. 'Full coverage' means every device in the lineup has a suitable lens.",
+    tipAggCol: "Maximum error across all configurations. This is the worst case — guarantees the lens performs no worse than this value in any device. Rows are sorted by this column.",
   },
   zh: {
     title: "物镜选择", subtitle: "寻找1毫弧度精确对应微显示器整数像素数的焦距",
@@ -219,7 +227,7 @@ const T: Record<string, Record<string, string>> = {
     tipModeVOnly: "仅垂直误差决定排名。完全忽略水平轴。最实用的弹道选择。",
     tipRowClick: "点击展开距离表。", tipPosCell: "mm——标记偏离理想位置于",
     tabSingle: "单设备", tabPortfolio: "镜头组合",
-    portfolioSubtitle: "为整个产品线构建标准镜头组合。从表格中选择焦距——组合矩阵显示配置覆盖情况。",
+    portfolioSubtitle: "为整个产品线构建标准镜头组合。表格按误差排序——最佳在上。点击行构建组合，矩阵显示覆盖情况。",
     configs: "设备配置", configName: "名称", addConfig: "+ 添加配置",
     focalRange: "焦距范围（共用）",
     allFocals: "所有焦距——选择加入组合",
@@ -230,6 +238,10 @@ const T: Record<string, Record<string, string>> = {
     fullCoverage: "✓ 完全覆盖", notCovered: "⚠ 未覆盖：", outOf: "/",
     removeFromPortfolio: "从组合中移除", addToPortfolio: "添加到组合",
     tipPCfgCol: "配置误差，%。取决于轴优先级：'两轴等'=max(H,V)，'V优先'/'仅V'=V。绿<1%，黄<5%，红≥5%。",
+    pResultsTitle: "结果——按误差↑", pResultsHint: "点击行添加/移除组合",
+    pAggCol: "聚合（最大）", pPortfolioDesc: "舍入误差（%），按轴优先级模式",
+    pTipCoverage: "至少有一个组合镜头误差≤阈值的配置数量。'完全覆盖'表示产品线中每个设备都有合适的镜头。",
+    tipAggCol: "所有配置中的最大误差。这是最坏情况——保证镜头在任何设备中的表现不低于此值。行按此列排序。",
   },
 };
 const LANG_KEY = "rika-calc-lang";
@@ -459,7 +471,8 @@ export default function App() {
       const cs = pCfg.map((c, i) => `c${i+1}=${c.detI},${c.pitchI},${c.dispI}`).join("&");
       const ns = pCfg.map((c, i) => c.name ? `n${i+1}=${encodeURIComponent(c.name)}` : "").filter(Boolean).join("&");
       const pf = portfolio.length ? `&pf=${portfolio.join(",")}` : "";
-      window.location.hash = `tab=portfolio&from=${pFF}&to=${pFT}&mode=${sm}&thr=${pThr}&lang=${lang}&${cs}${ns ? "&" + ns : ""}${pf}`;
+      const hashMode = sm === "both" ? "vOnly" : sm;
+      window.location.hash = `tab=portfolio&from=${pFF}&to=${pFT}&mode=${hashMode}&thr=${pThr}&lang=${lang}&${cs}${ns ? "&" + ns : ""}${pf}`;
     }
   }, [tab, dI, dpI, pI, fF, fT, pFF, pFT, sm, pThr, lang, pCfg, portfolio]);
 
@@ -488,10 +501,23 @@ export default function App() {
     return { f, cfgs };
   }), [pCfg, pLo, pHi, sm]);
 
+  const pMode: "vOnly" | "vPriority" = sm === "both" ? "vOnly" : sm as "vOnly" | "vPriority";
+  const pSorted = useMemo(() => {
+    return pResults.map(row => {
+      const aggV = Math.max(...row.cfgs.map(c => c.v.err));
+      const aggH = Math.max(...row.cfgs.map(c => c.h.err));
+      return { ...row, aggregate: aggV, aggH };
+    }).sort((a, b) => {
+      const d = a.aggregate - b.aggregate;
+      if (pMode === "vPriority" && Math.abs(d) < 0.001) return a.aggH - b.aggH;
+      return d;
+    });
+  }, [pResults, pMode]);
+
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v5.0.0</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v5.1.0</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
       </div>
       {/* Tab buttons */}
       <div style={{ display: "flex", gap: 8, margin: "16px 0 20px" }}>
@@ -663,91 +689,138 @@ export default function App() {
         {pCfg.map((cfg, ci) => (
           <div key={ci} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderLeft: `3px solid ${CMP_COLORS[ci]}`, paddingLeft: 12, marginBottom: 8, flexWrap: "wrap" }}>
             <input type="text" placeholder={lang === "ru" ? `Конфиг ${ci+1}` : lang === "zh" ? `配置${ci+1}` : `Config ${ci+1}`}
-              value={cfg.name} onChange={e => setPCfg(prev => prev.map((c, i) => i === ci ? { ...c, name: e.target.value } : c))}
+              value={cfg.name} maxLength={20} onChange={e => setPCfg(prev => prev.map((c, i) => i === ci ? { ...c, name: e.target.value } : c))}
               style={{ ...iS, width: 120, padding: "6px 10px", fontSize: 12 }} />
             <Sel value={cfg.detI} onChange={v => setPCfg(prev => prev.map((c, i) => i === ci ? { ...c, detI: v } : c))} options={DETECTOR_PRESETS} render={(p: Preset) => p.label} />
             <Sel value={cfg.pitchI} onChange={v => setPCfg(prev => prev.map((c, i) => i === ci ? { ...c, pitchI: v } : c))} options={PITCH_OPTIONS} render={(p: number) => p + " µm"} />
             <Sel value={cfg.dispI} onChange={v => setPCfg(prev => prev.map((c, i) => i === ci ? { ...c, dispI: v } : c))} options={DISPLAY_PRESETS} render={(p: Preset) => p.label} />
-            <button onClick={() => setPCfg(prev => prev.filter((_, i) => i !== ci))} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 8px", color: C.dim, cursor: "pointer", fontSize: 14 }}>✕</button>
+            {pCfg.length > 2 && <button onClick={() => setPCfg(prev => prev.filter((_, i) => i !== ci))} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 8px", color: C.dim, cursor: "pointer", fontSize: 14 }}>✕</button>}
           </div>
         ))}
         {pCfg.length < 6 && <button onClick={() => setPCfg(prev => [...prev, { name: "", detI: 3, pitchI: 0, dispI: 1 }])} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 14px", color: C.dim, cursor: "pointer", fontFamily: mn, fontSize: 12, marginTop: 8 }}>{t("addConfig")}</button>}
       </Cd>
 
-      <SortMode mode={sm} setMode={setSm} t={t} />
-
-      {/* Full table — all focal lengths sorted by F ascending */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden", marginBottom: 20 }}>
-        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}` }}>
-          <span style={sS}>{t("allFocals")}</span>
+      {/* Portfolio sort mode - 2 buttons only */}
+      <Cd title={t("sortModeTitle")}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+          {[{ k: "vOnly" as SortMode, l: t("modeVOnly"), d: t("modeVOnlyDesc"), tp: t("tipModeVOnly") }, { k: "vPriority" as SortMode, l: t("modeVPri"), d: t("modeVPriDesc"), tp: t("tipModeVPri") }].map(m => (
+            <button key={m.k} onClick={() => setSm(m.k)} title={m.tp} style={{
+              background: pMode === m.k ? C.V + "18" : "transparent",
+              border: `1.5px solid ${pMode === m.k ? C.V : C.border}`,
+              borderRadius: 6, padding: "8px 14px", cursor: "pointer", textAlign: "left" as const, flex: "1 1 180px"
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: pMode === m.k ? C.V : C.dim, fontFamily: mn, marginBottom: 3 }}>{m.l}</div>
+              <div style={{ fontSize: 10, color: pMode === m.k ? C.label : C.hint, lineHeight: 1.4 }}>{m.d}</div>
+            </button>
+          ))}
         </div>
-        <div style={{ padding: "8px 16px", fontSize: 11, color: C.hint }}>{t("pickHint")}</div>
+        <p style={{ fontSize: 11, color: C.hint, lineHeight: 1.6, margin: 0 }}>{t("sortModeWhy")}</p>
+      </Cd>
+
+      {/* Results table — sorted by aggregate error */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden", marginBottom: 20 }}>
+        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <span style={sS}>{t("pResultsTitle")}</span>
+          <span style={{ fontSize: 11, color: C.hint }}>{pMode === "vPriority" ? t("modeVPri") : t("modeVOnly")} · {pSorted.length} {t("tableCount")} {pLo}–{pHi}mm</span>
+        </div>
+        <div style={{ padding: "8px 16px", fontSize: 11, color: C.hint }}>{t("pResultsHint")}</div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 12 }}>
             <thead><tr style={{ borderBottom: `1px solid ${C.border}` }}>
-              <TH w={30}></TH>
+              <TH w={28} />
+              <TH w={24} />
+              <TH w={30} align="center">#</TH>
               <TH align="center" tip={t("tipF")}>{t("colF")}</TH>
               {pCfg.map((cfg, ci) => {
-                const cfgName = cfg.name || (lang === "ru" ? `К${ci+1}` : lang === "zh" ? `配${ci+1}` : `C${ci+1}`);
-                return <TH key={ci} align="right" color={CMP_COLORS[ci]} tip={t("tipPCfgCol")}>{cfgName} %</TH>;
+                const d = DETECTOR_PRESETS[cfg.detI], dp = DISPLAY_PRESETS[cfg.dispI], p = PITCH_OPTIONS[cfg.pitchI];
+                const cfgLabel = cfg.name || `${d.label}→${dp.label}`;
+                const hdrTip = lang === "ru"
+                  ? `Итоговая ошибка округления для конфигурации: сенсор ${d.w}×${d.h}, шаг ${p}µm, дисплей ${dp.w}×${dp.h}. Режим: ${pMode === "vPriority" ? t("modeVPri") : t("modeVOnly")}.`
+                  : lang === "zh"
+                  ? `配置的舍入误差：传感器${d.w}×${d.h}，间距${p}µm，显示器${dp.w}×${dp.h}。模式：${pMode === "vPriority" ? t("modeVPri") : t("modeVOnly")}。`
+                  : `Rounding error for configuration: sensor ${d.w}×${d.h}, pitch ${p}µm, display ${dp.w}×${dp.h}. Mode: ${pMode === "vPriority" ? t("modeVPri") : t("modeVOnly")}.`;
+                return <TH key={ci} align="right" color={CMP_COLORS[ci]} tip={hdrTip}>{cfgLabel} %</TH>;
               })}
+              <TH align="right" tip={t("tipAggCol")}>{t("pAggCol")}</TH>
             </tr></thead>
-            <tbody>{pResults.map(row => {
+            <tbody>{pSorted.map((row, i) => {
               const inPf = portfolio.includes(row.f);
-              const allIdeal = row.cfgs.every(c => c.h.err < 0.01 && c.v.err < 0.01);
+              const isIdeal = row.aggregate < 0.01;
+              const isTop5 = i < 5;
               const isExp = pExp === row.f;
-              const modeLabel = sm === "both" ? t("modeBoth") : sm === "vPriority" ? t("modeVPri") : t("modeVOnly");
-              const fTip = lang === "ru" ? `Фокусное расстояние ${row.f} мм. Кликните чтобы ${inPf ? "убрать из" : "добавить в"} портфель.`
-                : lang === "zh" ? `焦距${row.f}mm。点击${inPf ? "从组合中移除" : "添加到组合"}。`
-                : `Focal length ${row.f} mm. Click to ${inPf ? "remove from" : "add to"} portfolio.`;
+              const modeLabel = pMode === "vPriority" ? t("modeVPri") : t("modeVOnly");
+              const fTip = lang === "ru"
+                ? `Фокусное расстояние ${row.f} мм. Агрегат (макс. ошибка по всем конфигурациям) = ${row.aggregate.toFixed(2)}%. Кликните чтобы ${inPf ? "убрать из" : "добавить в"} портфель.`
+                : lang === "zh"
+                ? `焦距${row.f}mm。聚合（所有配置的最大误差）=${row.aggregate.toFixed(2)}%。点击${inPf ? "从组合中移除" : "添加到组合"}。`
+                : `Focal length ${row.f} mm. Aggregate (max error across all configs) = ${row.aggregate.toFixed(2)}%. Click to ${inPf ? "remove from" : "add to"} portfolio.`;
+              const aggTip = lang === "ru"
+                ? `Максимальная ошибка среди всех конфигураций: ${row.aggregate.toFixed(2)}%. Это наихудший случай — гарантирует что объектив не хуже этого значения ни в одном приборе. Строки отсортированы по этому столбцу.`
+                : lang === "zh"
+                ? `所有配置中的最大误差：${row.aggregate.toFixed(2)}%。这是最坏情况——保证镜头在任何设备中的表现不低于此值。行按此列排序。`
+                : `Maximum error across all configurations: ${row.aggregate.toFixed(2)}%. This is the worst case — guarantees the lens performs no worse than this value in any device. Rows are sorted by this column.`;
               return (<Fragment key={row.f}>
                 <tr onClick={() => setPortfolio(prev => prev.includes(row.f) ? prev.filter(x => x !== row.f) : [...prev, row.f])}
                   style={{
                     borderBottom: `1px solid ${C.bg}`, cursor: "pointer",
-                    background: inPf ? "#00ff8812" : "transparent",
+                    background: isIdeal ? "#00ff8812" : inPf ? "#00ff8812" : isTop5 ? sbg(row.aggregate) : "transparent",
                     borderLeft: inPf ? `3px solid ${C.green}` : "3px solid transparent",
                   }}>
-                  <td style={td("center", 30)}>
-                    <span style={{ color: inPf ? C.green : C.hint, fontSize: 14, display: "inline-block", marginRight: 2 }}>{inPf ? "☑" : "☐"}</span>
-                    <button onClick={(e) => { e.stopPropagation(); setPExp(prev => prev === row.f ? null : row.f); }} style={{ background: "transparent", border: "none", color: C.dim, cursor: "pointer", fontSize: 10, padding: "0 2px", verticalAlign: "middle" }}>{isExp ? "▾" : "▸"}</button>
+                  <td style={td("center", 28)}>
+                    <span style={{ color: inPf ? C.green : C.hint, fontSize: 14 }}>{inPf ? "☑" : "☐"}</span>
                   </td>
-                  <td title={fTip} style={{ ...td("center"), color: inPf ? "#fff" : C.text }}>
+                  <td style={td("center", 24)}>
+                    <button onClick={(e) => { e.stopPropagation(); setPExp(prev => prev === row.f ? null : row.f); }} style={{ background: "transparent", border: "none", color: C.dim, cursor: "pointer", fontSize: 10, padding: "0 2px" }}>{isExp ? "▾" : "▸"}</button>
+                  </td>
+                  <td style={{ ...td("center", 30), fontSize: 10, color: C.dim }}>{i + 1}</td>
+                  <td title={fTip} style={{ ...td("center"), cursor: "help", fontWeight: isTop5 ? 700 : 400, color: isTop5 ? "#fff" : C.text }}>
+                    {isIdeal && <span style={{ fontSize: 16, color: "#00ff88", display: "inline-block", animation: "jackpot-pulse 2s ease-in-out infinite", marginRight: 4 }}>✦</span>}
                     {row.f}
-                    {allIdeal && <span style={{ fontSize: 9, color: "#00ff88", marginLeft: 6, background: "#00ff8833", padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>IDEAL</span>}
+                    {isTop5 && <span style={{ fontSize: 9, color: C.green, marginLeft: 6, background: `${C.green}1a`, padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>#{i + 1}</span>}
+                    {isIdeal && <span style={{ fontSize: 9, color: "#00ff88", marginLeft: 6, background: "#00ff8833", padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>IDEAL</span>}
                   </td>
                   {row.cfgs.map((cfgR, ci) => {
-                    const cfgName = pCfg[ci].name || (lang === "ru" ? `К${ci+1}` : lang === "zh" ? `配${ci+1}` : `C${ci+1}`);
-                    const dPreset = DETECTOR_PRESETS[pCfg[ci].detI], dpPreset = DISPLAY_PRESETS[pCfg[ci].dispI], pVal = PITCH_OPTIONS[pCfg[ci].pitchI];
+                    const cfg = pCfg[ci];
+                    const dPreset = DETECTOR_PRESETS[cfg.detI], dpPreset = DISPLAY_PRESETS[cfg.dispI], pVal = PITCH_OPTIONS[cfg.pitchI];
+                    const cfgLabel = cfg.name || `${dPreset.label}→${dpPreset.label}`;
+                    const sH = (dPreset.w / dpPreset.w).toFixed(4), sV = (dPreset.h / dpPreset.h).toFixed(4);
                     const cfgTip = lang === "ru"
-                      ? `Ошибка ${cfgR.score.toFixed(2)}% для "${cfgName}" (${dPreset.label} → ${dpPreset.label}, ${pVal}µm). px/мрад H: ${cfgR.h.ppm.toFixed(3)} (ош. ${cfgR.h.err.toFixed(2)}%), V: ${cfgR.v.ppm.toFixed(3)} (ош. ${cfgR.v.err.toFixed(2)}%). Итог (${modeLabel}): ${cfgR.score.toFixed(2)}%.`
+                      ? `Ошибка ${cfgR.score.toFixed(2)}% для конфигурации "${cfgLabel}" (сенсор ${dPreset.w}×${dPreset.h}, шаг ${pVal}µm, дисплей ${dpPreset.w}×${dpPreset.h}). Масштаб H: ${sH}, V: ${sV}. px/мрад H: ${cfgR.h.ppm.toFixed(3)} (ош. ${cfgR.h.err.toFixed(2)}%), V: ${cfgR.v.ppm.toFixed(3)} (ош. ${cfgR.v.err.toFixed(2)}%). Режим ${modeLabel}: итог ${cfgR.score.toFixed(2)}%.`
                       : lang === "zh"
-                      ? `"${cfgName}"误差${cfgR.score.toFixed(2)}% (${dPreset.label}→${dpPreset.label}, ${pVal}µm)。px/mrad H: ${cfgR.h.ppm.toFixed(3)} (误差${cfgR.h.err.toFixed(2)}%), V: ${cfgR.v.ppm.toFixed(3)} (误差${cfgR.v.err.toFixed(2)}%)。综合(${modeLabel}): ${cfgR.score.toFixed(2)}%。`
-                      : `Error ${cfgR.score.toFixed(2)}% for "${cfgName}" (${dPreset.label} → ${dpPreset.label}, ${pVal}µm). px/mrad H: ${cfgR.h.ppm.toFixed(3)} (err ${cfgR.h.err.toFixed(2)}%), V: ${cfgR.v.ppm.toFixed(3)} (err ${cfgR.v.err.toFixed(2)}%). Overall (${modeLabel}): ${cfgR.score.toFixed(2)}%.`;
+                      ? `"${cfgLabel}"误差${cfgR.score.toFixed(2)}% (传感器${dPreset.w}×${dPreset.h}, 间距${pVal}µm, 显示器${dpPreset.w}×${dpPreset.h})。缩放H: ${sH}, V: ${sV}。px/mrad H: ${cfgR.h.ppm.toFixed(3)} (误差${cfgR.h.err.toFixed(2)}%), V: ${cfgR.v.ppm.toFixed(3)} (误差${cfgR.v.err.toFixed(2)}%)。模式${modeLabel}: 综合${cfgR.score.toFixed(2)}%。`
+                      : `Error ${cfgR.score.toFixed(2)}% for "${cfgLabel}" (sensor ${dPreset.w}×${dPreset.h}, pitch ${pVal}µm, display ${dpPreset.w}×${dpPreset.h}). Scale H: ${sH}, V: ${sV}. px/mrad H: ${cfgR.h.ppm.toFixed(3)} (err ${cfgR.h.err.toFixed(2)}%), V: ${cfgR.v.ppm.toFixed(3)} (err ${cfgR.v.err.toFixed(2)}%). Mode ${modeLabel}: overall ${cfgR.score.toFixed(2)}%.`;
                     return <td key={ci} title={cfgTip} style={{ ...td("right"), cursor: "help", fontWeight: 600, color: sc(cfgR.score) }}>{cfgR.score.toFixed(2)}</td>;
                   })}
+                  <td title={aggTip} style={{ ...td("right"), cursor: "help", fontWeight: 700, color: sc(row.aggregate), fontSize: 13 }}>{row.aggregate.toFixed(2)}</td>
                 </tr>
-                {isExp && <tr><td colSpan={2 + pCfg.length} style={{ padding: 16, background: "#0a0a0a" }}>
+                {isExp && <tr><td colSpan={4 + pCfg.length + 1} style={{ padding: 16, background: "#0a0a0a" }}>
                   {row.cfgs.map((cfgR, ci) => {
-                    const cfgName = pCfg[ci].name || (lang === "ru" ? `К${ci+1}` : lang === "zh" ? `配${ci+1}` : `C${ci+1}`);
-                    const dPreset = DETECTOR_PRESETS[pCfg[ci].detI], dpPreset = DISPLAY_PRESETS[pCfg[ci].dispI], pVal = PITCH_OPTIONS[pCfg[ci].pitchI];
+                    const cfg = pCfg[ci];
+                    const cfgLabel = cfg.name || `${DETECTOR_PRESETS[cfg.detI].label}→${DISPLAY_PRESETS[cfg.dispI].label}`;
+                    const dPreset = DETECTOR_PRESETS[cfg.detI], dpPreset = DISPLAY_PRESETS[cfg.dispI], pVal = PITCH_OPTIONS[cfg.pitchI];
+                    const sH = (dPreset.w / dpPreset.w).toFixed(4), sV = (dPreset.h / dpPreset.h).toFixed(4);
+                    const effH = (dPreset.w / dpPreset.w * pVal).toFixed(2), effV = (dPreset.h / dpPreset.h * pVal).toFixed(2);
                     return (<div key={ci} style={{ borderLeft: `3px solid ${CMP_COLORS[ci]}`, paddingLeft: 12, marginBottom: 16 }}>
-                      <div style={{ fontSize: 12, fontFamily: mn, color: CMP_COLORS[ci], fontWeight: 700, marginBottom: 6 }}>{cfgName} <span style={{ color: C.dim, fontWeight: 400 }}>({dPreset.label} → {dpPreset.label}, {pVal}µm)</span></div>
+                      <div style={{ fontSize: 12, fontFamily: mn, color: CMP_COLORS[ci], fontWeight: 700, marginBottom: 6 }}>{cfgLabel} <span style={{ color: C.dim, fontWeight: 400 }}>({dPreset.label} → {dpPreset.label}, {pVal}µm)</span></div>
+                      <div style={{ fontSize: 11, fontFamily: mn, color: C.dim, marginBottom: 4 }}>
+                        {lang === "ru" ? "Масштаб" : lang === "zh" ? "缩放" : "Scale"} H: {sH}, V: {sV} · {lang === "ru" ? "Эфф. шаг" : lang === "zh" ? "有效间距" : "Eff. pitch"} H: {effH}µm, V: {effV}µm
+                      </div>
                       <div style={{ fontSize: 12, fontFamily: mn, color: C.dim, marginBottom: 8 }}>
                         px/mrad <span style={{ color: C.H }}>H: {cfgR.h.ppm.toFixed(3)}</span>, <span style={{ color: C.V }}>V: {cfgR.v.ppm.toFixed(3)}</span> — err <span style={{ color: sc(cfgR.h.err) }}>H: {cfgR.h.err.toFixed(2)}%</span>, <span style={{ color: sc(cfgR.v.err) }}>V: {cfgR.v.err.toFixed(2)}%</span> — total: <span style={{ color: sc(cfgR.score) }}>{cfgR.score.toFixed(2)}%</span>
                       </div>
                       <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                         <div style={{ flex: "1 1 300px" }}>
-                          <div style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{t("pixelSize")}</div>
+                          <div title={tip("tipPixelSize")} style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6, cursor: "help" }}>{t("pixelSize")}</div>
                           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 11 }}>
-                            <thead><tr><th style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>{t("dist")}</th><th style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>H, mm</th><th style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>V, mm</th></tr></thead>
-                            <tbody>{DISTANCES.map(d => { const hv = (cfgR.h.mm100 * d / 100).toFixed(2), vv = (cfgR.v.mm100 * d / 100).toFixed(2); return <tr key={d}><td style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td><td style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{hv}</td><td style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{vv}</td></tr>; })}</tbody>
+                            <thead><tr><th title={t("tipDistCol")} style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>{t("dist")}</th><th title={t("tipPixHCol")} style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>H, mm</th><th title={t("tipPixVCol")} style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>V, mm</th></tr></thead>
+                            <tbody>{DISTANCES.map(d => { const hv = (cfgR.h.mm100 * d / 100).toFixed(2), vv = (cfgR.v.mm100 * d / 100).toFixed(2); return <tr key={d}><td title={cTip("dist", "", d)} style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td><td title={cTip("pixH", hv, d)} style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{hv}</td><td title={cTip("pixV", vv, d)} style={{ textAlign: "right", color: C.dim, padding: "2px 4px" }}>{vv}</td></tr>; })}</tbody>
                           </table>
                         </div>
                         <div style={{ flex: "1 1 300px" }}>
-                          <div style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{t("posError")}</div>
+                          <div title={tip("tipPosError")} style={{ fontSize: 10, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6, cursor: "help" }}>{t("posError")}</div>
                           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 11 }}>
-                            <thead><tr><th style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>{t("dist")}</th><th style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>H, mm</th><th style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10 }}>V, mm</th></tr></thead>
-                            <tbody>{DISTANCES.map(d => { const eh = cfgR.h.err / 100 * d, ev = cfgR.v.err / 100 * d; return <tr key={d}><td style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td><td style={{ textAlign: "right", color: eh < 5 ? C.green : eh < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{eh.toFixed(2)}</td><td style={{ textAlign: "right", color: ev < 5 ? C.green : ev < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{ev.toFixed(2)}</td></tr>; })}</tbody>
+                            <thead><tr><th title={t("tipDistCol")} style={{ textAlign: "left", color: C.label, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>{t("dist")}</th><th title={t("tipErrHCol")} style={{ textAlign: "right", color: C.H, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>H, mm</th><th title={t("tipErrVCol")} style={{ textAlign: "right", color: C.V, fontWeight: 600, padding: "2px 4px", fontSize: 10, cursor: "help" }}>V, mm</th></tr></thead>
+                            <tbody>{DISTANCES.map(d => { const eh = cfgR.h.err / 100 * d, ev = cfgR.v.err / 100 * d; return <tr key={d}><td title={cTip("dist", "", d)} style={{ color: C.dim, padding: "2px 4px" }}>{d}m</td><td title={cTip("errH", eh.toFixed(2), d)} style={{ textAlign: "right", color: eh < 5 ? C.green : eh < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{eh.toFixed(2)}</td><td title={cTip("errV", ev.toFixed(2), d)} style={{ textAlign: "right", color: ev < 5 ? C.green : ev < 20 ? C.yellow : C.red, padding: "2px 4px" }}>{ev.toFixed(2)}</td></tr>; })}</tbody>
                           </table>
                         </div>
                       </div>
@@ -764,20 +837,26 @@ export default function App() {
       {portfolio.length > 0 ? (
         <div style={{ background: "#0c1a14", border: `1px solid #1a3a28`, borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>
           <div style={sS}>{t("portfolioTitle")}</div>
+          <div style={{ fontSize: 11, color: C.hint, marginBottom: 10 }}>{t("pPortfolioDesc")}</div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 12 }}>
               <thead><tr>
                 <TH></TH>
-                {[...portfolio].sort((a,b) => a-b).map(f => (
-                  <TH key={f} align="center">
-                    F={f} <button onClick={() => setPortfolio(prev => prev.filter(x => x !== f))} style={{ background: "transparent", border: "none", color: C.hint, cursor: "pointer", fontSize: 10 }}>✕</button>
-                  </TH>
-                ))}
+                {[...portfolio].sort((a,b) => a-b).map(f => {
+                  const fhTip = lang === "ru" ? `F=${f} мм в портфеле. Нажмите ✕ чтобы убрать.`
+                    : lang === "zh" ? `F=${f}mm在组合中。点击✕移除。`
+                    : `F=${f} mm in portfolio. Click ✕ to remove.`;
+                  return (
+                    <TH key={f} align="center" tip={fhTip}>
+                      F={f} <button onClick={() => setPortfolio(prev => prev.filter(x => x !== f))} style={{ background: "transparent", border: "none", color: C.hint, cursor: "pointer", fontSize: 10 }}>✕</button>
+                    </TH>
+                  );
+                })}
                 <TH align="center" color={C.green}>{t("bestLens")}</TH>
               </tr></thead>
               <tbody>
                 {pCfg.map((cfg, ci) => {
-                  const cfgName = cfg.name || (lang === "ru" ? `К${ci+1}` : lang === "zh" ? `配${ci+1}` : `C${ci+1}`);
+                  const cfgLabel = cfg.name || `${DETECTOR_PRESETS[cfg.detI].label}→${DISPLAY_PRESETS[cfg.dispI].label}`;
                   const sortedPf = [...portfolio].sort((a,b) => a-b);
                   const pfErrors = sortedPf.map(f => {
                     const row = pResults.find(r => r.f === f);
@@ -788,17 +867,22 @@ export default function App() {
                     if (e && e.score < bestErr) { bestErr = e.score; bestF = sortedPf[i]; }
                   });
                   const dPreset = DETECTOR_PRESETS[cfg.detI], dpPreset = DISPLAY_PRESETS[cfg.dispI], pVal = PITCH_OPTIONS[cfg.pitchI];
+                  const bestTip = lang === "ru"
+                    ? `Лучший объектив из портфеля для этой конфигурации — F=${bestF} мм с ошибкой ${bestErr.toFixed(2)}%. Из ${sortedPf.length} объективов в портфеле.`
+                    : lang === "zh"
+                    ? `该配置的最佳组合镜头——F=${bestF}mm，误差${bestErr.toFixed(2)}%。组合中共${sortedPf.length}个镜头。`
+                    : `Best portfolio lens for this configuration — F=${bestF} mm with ${bestErr.toFixed(2)}% error. From ${sortedPf.length} lenses in portfolio.`;
                   return (
                     <tr key={ci} style={{ borderBottom: `1px solid #1a3a28`, borderLeft: `3px solid ${CMP_COLORS[ci]}` }}>
-                      <td style={{ ...td("left"), color: CMP_COLORS[ci], fontWeight: 700 }}>{cfgName}</td>
+                      <td style={{ ...td("left"), color: CMP_COLORS[ci], fontWeight: 700 }}>{cfgLabel}</td>
                       {pfErrors.map((e, i) => {
                         const isBest = sortedPf[i] === bestF;
                         const isZero = e && e.score < 0.01;
                         const matTip = e ? (lang === "ru"
-                          ? `При F=${sortedPf[i]} мм "${cfgName}" (${dPreset.label}→${dpPreset.label}, ${pVal}µm) даёт ошибку ${e.score.toFixed(2)}%. px/мрад H: ${e.h.ppm.toFixed(3)}, V: ${e.v.ppm.toFixed(3)}.`
+                          ? `При F=${sortedPf[i]} мм конфигурация "${cfgLabel}" (сенсор ${dPreset.w}×${dPreset.h} → дисплей ${dpPreset.w}×${dpPreset.h}, pitch ${pVal}µm) даёт ошибку ${e.score.toFixed(2)}%. px/мрад H: ${e.h.ppm.toFixed(3)} (${e.h.err.toFixed(2)}%), V: ${e.v.ppm.toFixed(3)} (${e.v.err.toFixed(2)}%).`
                           : lang === "zh"
-                          ? `F=${sortedPf[i]}mm时"${cfgName}" (${dPreset.label}→${dpPreset.label}, ${pVal}µm) 误差${e.score.toFixed(2)}%。px/mrad H: ${e.h.ppm.toFixed(3)}, V: ${e.v.ppm.toFixed(3)}。`
-                          : `At F=${sortedPf[i]} mm "${cfgName}" (${dPreset.label}→${dpPreset.label}, ${pVal}µm) gives ${e.score.toFixed(2)}% error. px/mrad H: ${e.h.ppm.toFixed(3)}, V: ${e.v.ppm.toFixed(3)}.`) : "";
+                          ? `F=${sortedPf[i]}mm时配置"${cfgLabel}" (传感器${dPreset.w}×${dPreset.h} → 显示器${dpPreset.w}×${dpPreset.h}, 间距${pVal}µm) 误差${e.score.toFixed(2)}%。px/mrad H: ${e.h.ppm.toFixed(3)} (${e.h.err.toFixed(2)}%), V: ${e.v.ppm.toFixed(3)} (${e.v.err.toFixed(2)}%)。`
+                          : `At F=${sortedPf[i]} mm "${cfgLabel}" (sensor ${dPreset.w}×${dPreset.h} → display ${dpPreset.w}×${dpPreset.h}, pitch ${pVal}µm) gives ${e.score.toFixed(2)}% error. px/mrad H: ${e.h.ppm.toFixed(3)} (${e.h.err.toFixed(2)}%), V: ${e.v.ppm.toFixed(3)} (${e.v.err.toFixed(2)}%).`) : "";
                         return (
                           <td key={i} title={matTip} style={{
                             ...td("center"), fontWeight: isBest ? 700 : 400,
@@ -806,16 +890,13 @@ export default function App() {
                             border: isBest ? `1px solid ${C.green}` : "none",
                             cursor: "help",
                           }}>
-                            {e ? e.score.toFixed(2) : "\u2014"}
-                            {isZero && <span style={{ color: C.green }}> \u2726</span>}
+                            {e ? e.score.toFixed(2) : "—"}
+                            {isZero && <span style={{ color: C.green }}> ✦</span>}
                           </td>
                         );
                       })}
-                      <td title={lang === "ru" ? `Лучший объектив из портфеля для "${cfgName}" — F=${bestF} мм с ошибкой ${bestErr.toFixed(2)}%.`
-                        : lang === "zh" ? `"${cfgName}"的最佳组合镜头——F=${bestF}mm，误差${bestErr.toFixed(2)}%。`
-                        : `Best portfolio lens for "${cfgName}" — F=${bestF} mm with ${bestErr.toFixed(2)}% error.`}
-                        style={{ ...td("center"), fontWeight: 700, color: C.green, cursor: "help" }}>
-                        {bestF} mm ({bestErr.toFixed(2)}%)
+                      <td title={bestTip} style={{ ...td("center"), fontWeight: 700, color: C.green, cursor: "help" }}>
+                        {bestF} {lang === "ru" ? "мм" : "mm"} ({bestErr.toFixed(2)}%)
                       </td>
                     </tr>
                   );
@@ -824,7 +905,7 @@ export default function App() {
             </table>
           </div>
           {/* Coverage indicator */}
-          <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div title={t("pTipCoverage")} style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", cursor: "help" }}>
             <span style={{ fontSize: 12, color: C.label, fontFamily: mn }}>{t("coverageLabel")}:</span>
             {(() => {
               const sortedPf = [...portfolio].sort((a,b) => a-b);
@@ -833,7 +914,7 @@ export default function App() {
                 return row && row.cfgs[ci].score <= pThr;
               }));
               const covCount = covered.filter(Boolean).length;
-              const uncoveredNames = pCfg.map((cfg, ci) => !covered[ci] ? (cfg.name || (lang === "ru" ? `К${ci+1}` : lang === "zh" ? `配${ci+1}` : `C${ci+1}`)) : null).filter(Boolean);
+              const uncoveredNames = pCfg.map((cfg, ci) => !covered[ci] ? (cfg.name || `${DETECTOR_PRESETS[cfg.detI].label}→${DISPLAY_PRESETS[cfg.dispI].label}`) : null).filter(Boolean);
               return (<>
                 <span style={{ fontSize: 13, fontWeight: 700, color: covCount === pCfg.length ? C.green : C.yellow, fontFamily: mn }}>
                   {covCount === pCfg.length ? t("fullCoverage") : `${covCount} ${t("outOf")} ${pCfg.length}`}
