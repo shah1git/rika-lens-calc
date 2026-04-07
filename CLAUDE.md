@@ -87,6 +87,17 @@
 - Новые пресеты добавлять в конец массива, не менять индексы существующих (ломает `useState` дефолты)
 - Дефолтный индекс `dI` должен соответствовать нужному сенсору после добавления
 
+### Карта покрытия / Heatmap (v7.4.0)
+- Блок между Vertical-only notice и Results table
+- `heatmapDetailed: boolean` state, default `false`
+- Матрица: строки = конфиги (pCfg), колонки = фокусные из pResults (pLo..pHi)
+- Цвет ячейки: sc(v.err) с полупрозрачным фоном — `#00ff8888` / `#ffcc0055` / `#ff334433`
+- Compact (A): клетки 6×14px, цветная полоска конфига слева, метки F каждые 20мм снизу, без hover/click
+- Detailed (C): клетки 11×20px, label конфига слева (130px, truncated, cursor: help с tooltip), метки F каждые 10мм, hover tooltip с F × конфиг × err × флаги, клик на клетку = toggle portfolio, inPf border выделение
+- Переключение внизу блока одной кнопкой (showMore/showLess)
+- Легенда цветов рядом с кнопкой
+- Все hover-tooltip строки строятся inline (RU/EN/ZH) — паттерн как в остальных подробных тултипах
+
 ### Мобильный лейаут (v7.3.0)
 - `isMobile` state через `window.matchMedia("(max-width: 640px)")` + `addEventListener("change")`
 - Ниже 640px таблица результатов заменяется на список карточек
