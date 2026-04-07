@@ -13,7 +13,6 @@ export default function App() {
   const tip = t;
   const cl = (l: string) => { setLang(l); try { localStorage.setItem(LANG_KEY, l); } catch { /* ignore quota/privacy errors */ } };
   const [copied, setCopied] = useState(false);
-  const [heatmapDetailed, setHeatmapDetailed] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
@@ -93,7 +92,7 @@ export default function App() {
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v7.4.0</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v7.4.1</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
       </div>
 
       <p style={{ fontSize: 16, color: C.text, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720, fontWeight: 500 }}>{t("subtitle")}</p>
@@ -130,7 +129,7 @@ export default function App() {
         <p style={{ fontSize: 12, color: C.label, lineHeight: 1.6, margin: 0 }}>{t("verticalOnlyNote")}</p>
       </div>
 
-      {/* Coverage heatmap (variant A by default, variant C in detailed mode) */}
+      {/* Coverage heatmap */}
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>
         <div style={sS}>{t("heatmapTitle")}</div>
         <div style={{ fontSize: 11, color: C.hint, marginBottom: 10, lineHeight: 1.5 }}>{t("heatmapDesc")}</div>
@@ -141,32 +140,26 @@ export default function App() {
               const cfgLabel = cfg.name || `${d.label}→${dp.label}`;
               return (
                 <div key={ci} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                  {heatmapDetailed && (
-                    <div title={`${cfgLabel} — ${d.w}×${d.h} → ${dp.w}×${dp.h}, ${pVal}µm`} style={{ width: 130, fontSize: 10, fontFamily: mn, color: CMP_COLORS[ci], fontWeight: 700, textAlign: "right", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "help" }}>{cfgLabel}</div>
-                  )}
-                  <div style={{ display: "flex", gap: 1, borderLeft: `3px solid ${CMP_COLORS[ci]}`, paddingLeft: heatmapDetailed ? 4 : 6 }}>
+                  <div title={`${cfgLabel} — ${d.w}×${d.h} → ${dp.w}×${dp.h}, ${pVal}µm`} style={{ width: 130, fontSize: 10, fontFamily: mn, color: CMP_COLORS[ci], fontWeight: 700, textAlign: "right", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "help" }}>{cfgLabel}</div>
+                  <div style={{ display: "flex", gap: 1, borderLeft: `3px solid ${CMP_COLORS[ci]}`, paddingLeft: 4 }}>
                     {pResults.map(row => {
                       const err = row.cfgs[ci].v.err;
                       const inPf = portfolio.includes(row.f);
-                      const bg = err < 1 ? "#00ff8888" : err < 5 ? "#ffcc0055" : "#ff334433";
-                      const cellW = heatmapDetailed ? 11 : 6;
-                      const cellH = heatmapDetailed ? 20 : 14;
-                      const cellTip = heatmapDetailed
-                        ? (lang === "ru" ? `F=${row.f}мм · ${cfgLabel} · ${err.toFixed(2)}%${err <= pThr ? " · ● ниже порога" : ""}${inPf ? " · в портфеле" : ""}`
-                          : lang === "zh" ? `F=${row.f}mm · ${cfgLabel} · ${err.toFixed(2)}%${err <= pThr ? " · ●低于阈值" : ""}${inPf ? " · 在组合中" : ""}`
-                          : `F=${row.f}mm · ${cfgLabel} · ${err.toFixed(2)}%${err <= pThr ? " · ● below threshold" : ""}${inPf ? " · in portfolio" : ""}`)
-                        : undefined;
+                      const bg = err < 1 ? C.green : err < 5 ? C.yellow : C.red;
+                      const cellTip = lang === "ru" ? `F=${row.f}мм · ${cfgLabel} · ${err.toFixed(2)}%${err <= pThr ? " · ● ниже порога" : ""}${inPf ? " · в портфеле" : ""}`
+                        : lang === "zh" ? `F=${row.f}mm · ${cfgLabel} · ${err.toFixed(2)}%${err <= pThr ? " · ●低于阈值" : ""}${inPf ? " · 在组合中" : ""}`
+                        : `F=${row.f}mm · ${cfgLabel} · ${err.toFixed(2)}%${err <= pThr ? " · ● below threshold" : ""}${inPf ? " · in portfolio" : ""}`;
                       return (
                         <div
                           key={row.f}
                           title={cellTip}
-                          onClick={heatmapDetailed ? (e) => { e.stopPropagation(); setPortfolio(prev => prev.includes(row.f) ? prev.filter(x => x !== row.f) : [...prev, row.f]); } : undefined}
+                          onClick={(e) => { e.stopPropagation(); setPortfolio(prev => prev.includes(row.f) ? prev.filter(x => x !== row.f) : [...prev, row.f]); }}
                           style={{
-                            width: cellW,
-                            height: cellH,
+                            width: 11,
+                            height: 20,
                             background: bg,
-                            border: inPf ? `1px solid ${C.green}` : "1px solid transparent",
-                            cursor: heatmapDetailed ? "pointer" : "default",
+                            border: inPf ? `1px solid #fff` : "1px solid transparent",
+                            cursor: "pointer",
                             boxSizing: "border-box",
                           }}
                         />
@@ -178,14 +171,12 @@ export default function App() {
             })}
             {/* F axis labels */}
             <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 6 }}>
-              {heatmapDetailed && <div style={{ width: 130, flexShrink: 0 }} />}
-              <div style={{ display: "flex", gap: 1, paddingLeft: heatmapDetailed ? 7 : 9, position: "relative", height: 14 }}>
+              <div style={{ width: 130, flexShrink: 0 }} />
+              <div style={{ display: "flex", gap: 1, paddingLeft: 7, position: "relative", height: 14 }}>
                 {pResults.map(row => {
-                  const cellW = heatmapDetailed ? 11 : 6;
-                  const step = heatmapDetailed ? 10 : 20;
-                  const show = row.f % step === 0 || row.f === pLo || row.f === pHi;
+                  const show = row.f % 10 === 0 || row.f === pLo || row.f === pHi;
                   return (
-                    <div key={row.f} style={{ width: cellW, position: "relative" }}>
+                    <div key={row.f} style={{ width: 11, position: "relative" }}>
                       {show && (
                         <>
                           <div style={{ position: "absolute", top: -2, left: "50%", width: 1, height: 3, background: C.dim }} />
@@ -199,23 +190,18 @@ export default function App() {
             </div>
           </div>
         </div>
-        {/* Legend + toggle */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginTop: 14, paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
-          <div style={{ fontSize: 10, color: C.hint, fontFamily: mn, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <span style={{ width: 12, height: 10, background: "#00ff8888", display: "inline-block" }} />&lt;1%
-            </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <span style={{ width: 12, height: 10, background: "#ffcc0055", display: "inline-block" }} />&lt;5%
-            </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <span style={{ width: 12, height: 10, background: "#ff334433", display: "inline-block" }} />≥5%
-            </span>
-            {heatmapDetailed && <span style={{ color: C.dim }}>· {t("heatmapClickHint")}</span>}
-          </div>
-          <button onClick={() => setHeatmapDetailed(!heatmapDetailed)} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4, padding: "5px 14px", color: C.dim, cursor: "pointer", fontFamily: mn, fontSize: 11 }}>
-            {heatmapDetailed ? t("showLess") : t("showMore")}
-          </button>
+        {/* Legend */}
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10, marginTop: 14, paddingTop: 10, borderTop: `1px solid ${C.border}`, fontSize: 10, color: C.hint, fontFamily: mn }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 12, height: 10, background: C.green, display: "inline-block" }} />&lt;1%
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 12, height: 10, background: C.yellow, display: "inline-block" }} />&lt;5%
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 12, height: 10, background: C.red, display: "inline-block" }} />≥5%
+          </span>
+          <span style={{ color: C.dim }}>· {t("heatmapClickHint")}</span>
         </div>
       </div>
 
