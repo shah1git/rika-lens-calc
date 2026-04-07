@@ -1,20 +1,5 @@
-import { useState, useRef } from "react";
-import type { Preset } from "./optics";
-
-export const DETECTOR_PRESETS: Preset[] = [{label:"256×192",w:256,h:192},{label:"384×288",w:384,h:288},{label:"640×480",w:640,h:480},{label:"640×512",w:640,h:512},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024}];
-export const DISPLAY_PRESETS: Preset[] = [{label:"640×480",w:640,h:480},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024},{label:"1920×1080",w:1920,h:1080},{label:"2560×2560",w:2560,h:2560}];
-export const PITCH_OPTIONS = [12, 15, 17, 25];
-export const CMP_COLORS = ["#00ccff", "#ff66ff", "#ffcc00", "#00ff88", "#ff6644", "#aa88ff", "#88ddff", "#ffaa33", "#ff4488"];
-export const DISTANCES = [100, 200, 300, 500, 700, 1000];
-export function parseHash(): Record<string, string> { try { const p: Record<string, string> = {}; window.location.hash.slice(1).split('&').forEach(s => { const [k, v] = s.split('='); if (k && v) p[k] = v; }); return p; } catch { return {}; } }
-
-export const C = {
-  bg: "#050505", card: "#0e0e0e", border: "#222", text: "#e8e8e8", dim: "#888", label: "#aaa", hint: "#666",
-  green: "#00ff88", yellow: "#ffcc00", red: "#ff3344", H: "#00ccff", V: "#ff66ff",
-  xBg: "#0c1a14", xBrd: "#1a3a28",
-};
-export function sc(p: number) { return p < 1 ? C.green : p < 5 ? C.yellow : C.red; }
-export function sbg(p: number) { return p < 1 ? "#00ff8810" : p < 5 ? "#ffcc0008" : "transparent"; }
+import { useState } from "react";
+import { C, iS, mn, sS, fS, type Align } from "./theme";
 
 export function RikaLogo() {
   return (
@@ -27,10 +12,10 @@ export function RikaLogo() {
   );
 }
 
-export const fS: React.CSSProperties = { height: 16, width: 24, borderRadius: 2, display: "block" };
 export function FlagRU() { return (<svg viewBox="0 0 60 40" style={fS}><rect width="60" height="13.33" fill="#FFF"/><rect y="13.33" width="60" height="13.34" fill="#0039A6"/><rect y="26.67" width="60" height="13.33" fill="#D52B1E"/></svg>); }
 export function FlagEN() { return (<svg viewBox="0 0 60 40" style={fS}><rect width="60" height="40" fill="#FFF"/><text x="30" y="21" textAnchor="middle" dominantBaseline="central" fill="#000" fontSize="18" fontWeight="bold" fontFamily="sans-serif">EN</text></svg>); }
 export function FlagCN() { return (<svg viewBox="0 0 60 40" style={fS}><rect width="60" height="40" fill="#DE2910"/><g fill="#FFDE00"><polygon points="10,4 11.2,7.6 15,7.6 12,9.8 13,13.4 10,11 7,13.4 8,9.8 5,7.6 8.8,7.6"/></g></svg>); }
+
 export function LangSw({ lang, setLang }: { lang: string; setLang: (l: string) => void }) {
   const ls = [{ c: "en", F: FlagEN }, { c: "ru", F: FlagRU }, { c: "zh", F: FlagCN }];
   return (<div style={{ display: "flex", gap: 4 }}>{ls.map(({ c, F }) => (
@@ -38,21 +23,38 @@ export function LangSw({ lang, setLang }: { lang: string; setLang: (l: string) =
   ))}</div>);
 }
 
-export const mn = "'JetBrains Mono', monospace";
-export const sS: React.CSSProperties = { fontSize: 11, color: C.label, marginBottom: 14, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.1em" };
-export const iS: React.CSSProperties = { background: "#080808", color: "#e8e8e8", border: `1px solid ${C.border}`, borderRadius: 4, padding: "8px 12px", fontSize: 14, fontFamily: mn, cursor: "pointer", outline: "none" };
-export function td(a: string, w?: number): React.CSSProperties { return { padding: "7px 10px", textAlign: a as any, color: C.text, whiteSpace: "nowrap", ...(w ? { width: w } : {}) }; }
-export function PB({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) { return (<div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 140, flex: "1 1 140px" }}><label style={{ fontSize: 11, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>{children}<span style={{ fontSize: 10, color: C.hint, lineHeight: 1.5, maxWidth: 220 }}>{hint}</span></div>); }
-export function Sel({ value, onChange, options, render }: { value: number; onChange: (v: number) => void; options: any[]; render: (o: any) => string }) { return (<select value={value} onChange={e => onChange(Number(e.target.value))} style={iS}>{options.map((o: any, i: number) => <option key={i} value={i}>{render(o)}</option>)}</select>); }
+export function PB({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
+  return (<div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 140, flex: "1 1 140px" }}>
+    <label style={{ fontSize: 11, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
+    {children}
+    <span style={{ fontSize: 10, color: C.hint, lineHeight: 1.5, maxWidth: 220 }}>{hint}</span>
+  </div>);
+}
+
+export function Sel<T>({ value, onChange, options, render }: { value: number; onChange: (v: number) => void; options: readonly T[]; render: (o: T) => string }) {
+  return (<select value={value} onChange={e => onChange(Number(e.target.value))} style={iS}>
+    {options.map((o, i) => <option key={i} value={i}>{render(o)}</option>)}
+  </select>);
+}
+
 export function Nm({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
   const [draft, setDraft] = useState<string>(String(value));
-  const committed = useRef(value);
-  if (value !== committed.current) { committed.current = value; setDraft(String(value)); }
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) { setPrevValue(value); setDraft(String(value)); }
   return <input type="number" value={draft} min={min} max={max}
     onChange={e => setDraft(e.target.value)}
-    onBlur={() => { const n = Math.max(min, Math.min(max, Number(draft) || min)); committed.current = n; setDraft(String(n)); onChange(n); }}
+    onBlur={() => { const n = Math.max(min, Math.min(max, Number(draft) || min)); setPrevValue(n); setDraft(String(n)); onChange(n); }}
     onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
     style={{ ...iS, width: 90 }} />;
 }
-export function Cd({ title, children }: { title?: string; children: React.ReactNode }) { return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>{title && <div style={sS}>{title}</div>}{children}</div>); }
-export function TH({ children, align, w, color, tip, onClick }: { children?: React.ReactNode; align?: string; w?: number; color?: string; tip?: string; onClick?: () => void }) { return (<th title={tip || undefined} onClick={onClick} style={{ padding: "10px", textAlign: (align || "left") as any, width: w, fontSize: 10, color: color || C.dim, fontWeight: 600, whiteSpace: "nowrap", fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.04em", cursor: onClick ? "pointer" : tip ? "help" : "default" }}>{children}</th>); }
+
+export function Cd({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>
+    {title && <div style={sS}>{title}</div>}
+    {children}
+  </div>);
+}
+
+export function TH({ children, align, w, color, tip, onClick }: { children?: React.ReactNode; align?: Align; w?: number; color?: string; tip?: string; onClick?: () => void }) {
+  return (<th title={tip || undefined} onClick={onClick} style={{ padding: "10px", textAlign: align || "left", width: w, fontSize: 10, color: color || C.dim, fontWeight: 600, whiteSpace: "nowrap", fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.04em", cursor: onClick ? "pointer" : tip ? "help" : "default" }}>{children}</th>);
+}

@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect, Fragment } from "react";
 import { T, LANG_KEY } from "./i18n";
 import type { Preset, PConfig, PCfgResult } from "./optics";
 import { calcAxis } from "./optics";
-import { DETECTOR_PRESETS, DISPLAY_PRESETS, PITCH_OPTIONS, CMP_COLORS, DISTANCES, parseHash, C, sc, sbg, mn, sS, iS, td, PB, Sel, Nm, Cd, TH, RikaLogo, LangSw } from "./ui";
+import { DETECTOR_PRESETS, DISPLAY_PRESETS, PITCH_OPTIONS, CMP_COLORS, DISTANCES, parseHash, C, sc, sbg, mn, sS, iS, td } from "./theme";
+import { PB, Sel, Nm, Cd, TH, RikaLogo, LangSw } from "./ui";
 
 const _hp = parseHash();
 
@@ -10,8 +11,15 @@ export default function App() {
   const [lang, setLang] = useState(() => { if (_hp.lang && T[_hp.lang]) return _hp.lang; try { return localStorage.getItem(LANG_KEY) || "en"; } catch { return "en"; } });
   const t = (k: string) => T[lang]?.[k] ?? T.en[k] ?? k;
   const tip = t;
-  const cl = (l: string) => { setLang(l); try { localStorage.setItem(LANG_KEY, l); } catch {} };
+  const cl = (l: string) => { setLang(l); try { localStorage.setItem(LANG_KEY, l); } catch { /* ignore quota/privacy errors */ } };
   const [copied, setCopied] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const handler = () => setIsMobile(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   // Portfolio state
   const [pCfg, setPCfg] = useState<PConfig[]>(() => {
@@ -59,6 +67,7 @@ export default function App() {
     });
     return { f, cfgs };
   }), [pCfg, pLo, pHi]);
+  const pByF = useMemo(() => new Map(pResults.map(r => [r.f, r])), [pResults]);
 
   const pSorted = useMemo(() => {
     const rows = pResults.map(row => {
@@ -83,7 +92,7 @@ export default function App() {
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v7.2.0</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v7.3.0</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
       </div>
 
       <p style={{ fontSize: 16, color: C.text, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720, fontWeight: 500 }}>{t("subtitle")}</p>
@@ -130,6 +139,90 @@ export default function App() {
           </div>
         </div>
         <div style={{ padding: "8px 16px", fontSize: 11, color: C.hint }}>{t("pResultsHint")}</div>
+        {isMobile && (
+          <div style={{ padding: "0 16px 8px", display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.hint, fontFamily: mn }}>
+            <span>{t("sortBy")}:</span>
+            <select value={pSort} onChange={e => setPSort(e.target.value)} style={{ ...iS, padding: "6px 10px", fontSize: 12 }}>
+              <option value="max">{t("pAggCol")}</option>
+              <option value="cov">{t("colCoverage")}</option>
+              {pCfg.map((cfg, ci) => {
+                const d = DETECTOR_PRESETS[cfg.detI], dp = DISPLAY_PRESETS[cfg.dispI];
+                const label = cfg.name || `${d.label}→${dp.label}`;
+                return <option key={ci} value={`c${ci + 1}`}>{label}</option>;
+              })}
+            </select>
+          </div>
+        )}
+        {isMobile ? (
+          <div style={{ padding: "0 12px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+            {pSorted.map((row, i) => {
+              const inPf = portfolio.includes(row.f);
+              const isIdeal = row.aggregate < 0.01;
+              const isTop5 = i < 5;
+              const isExp = pExp === row.f;
+              return (<div key={row.f}
+                onClick={() => setPortfolio(prev => prev.includes(row.f) ? prev.filter(x => x !== row.f) : [...prev, row.f])}
+                style={{
+                  background: isIdeal ? "#00ff8812" : inPf ? "#00ff8812" : isTop5 ? sbg(row.aggregate) : "#0a0a0a",
+                  border: `1px solid ${inPf ? C.green : C.border}`,
+                  borderLeft: `3px solid ${inPf ? C.green : isIdeal ? C.green : isTop5 ? sc(row.aggregate) : C.border}`,
+                  borderRadius: 6, padding: "10px 12px", cursor: "pointer",
+                }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <span style={{ color: inPf ? C.green : C.hint, fontSize: 16 }}>{inPf ? "☑" : "☐"}</span>
+                  <span style={{ fontSize: 11, color: C.dim, fontFamily: mn, minWidth: 24 }}>#{i + 1}</span>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: isTop5 ? "#fff" : C.text, fontFamily: mn }}>F={row.f}</span>
+                  {isIdeal && <span style={{ fontSize: 14, color: "#00ff88", animation: "jackpot-pulse 2s ease-in-out infinite" }}>✦</span>}
+                  {isTop5 && <span style={{ fontSize: 9, color: C.green, background: `${C.green}1a`, padding: "1px 5px", borderRadius: 3, fontWeight: 700, fontFamily: mn }}>#{i + 1}</span>}
+                  {isIdeal && <span style={{ fontSize: 9, color: "#00ff88", background: "#00ff8833", padding: "1px 5px", borderRadius: 3, fontWeight: 700, fontFamily: mn }}>IDEAL</span>}
+                  <span style={{ flex: 1 }} />
+                  <button onClick={(e) => { e.stopPropagation(); setPExp(prev => prev === row.f ? null : row.f); }} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4, color: C.dim, cursor: "pointer", fontSize: 11, padding: "3px 8px", fontFamily: mn }}>{isExp ? "▾" : "▸"}</button>
+                </div>
+                <div style={{ fontFamily: mn, fontSize: 12, display: "flex", flexDirection: "column", gap: 4, marginBottom: 8 }}>
+                  {row.cfgs.map((cfgR, ci) => {
+                    const cfg = pCfg[ci];
+                    const cfgLabel = cfg.name || `${DETECTOR_PRESETS[cfg.detI].label}→${DISPLAY_PRESETS[cfg.dispI].label}`;
+                    const belowThr = cfgR.score <= pThr;
+                    return (<div key={ci} style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: 8, borderLeft: `2px solid ${CMP_COLORS[ci]}` }}>
+                      <span style={{ color: CMP_COLORS[ci], flex: 1, fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cfgLabel}</span>
+                      <span style={{ color: sc(cfgR.score), fontWeight: 600, minWidth: 46, textAlign: "right" }}>{cfgR.score.toFixed(2)}%</span>
+                      {belowThr && <span style={{ fontSize: 9, color: C.green }}>●</span>}
+                    </div>);
+                  })}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, fontFamily: mn, borderTop: `1px solid ${C.border}`, paddingTop: 6 }}>
+                  <span style={{ color: C.hint }}>{t("colCoverage")}: <span style={{ color: row.coverage === pCfg.length ? C.green : row.coverage > 0 ? C.yellow : C.hint, fontWeight: 700 }}>{row.coverage}/{pCfg.length}</span></span>
+                  <span style={{ color: C.hint }}>{t("pAggCol")}: <span style={{ color: sc(row.aggregate), fontWeight: 700 }}>{row.aggregate.toFixed(2)}%</span></span>
+                </div>
+                {isExp && (
+                  <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}`, cursor: "default" }}>
+                    {row.cfgs.map((cfgR, ci) => {
+                      const cfg = pCfg[ci];
+                      const cfgLabel = cfg.name || `${DETECTOR_PRESETS[cfg.detI].label}→${DISPLAY_PRESETS[cfg.dispI].label}`;
+                      const dPreset = DETECTOR_PRESETS[cfg.detI], dpPreset = DISPLAY_PRESETS[cfg.dispI], pVal = PITCH_OPTIONS[cfg.pitchI];
+                      return (<div key={ci} style={{ borderLeft: `3px solid ${CMP_COLORS[ci]}`, paddingLeft: 10, marginBottom: 12, fontFamily: mn, fontSize: 10 }}>
+                        <div style={{ color: CMP_COLORS[ci], fontWeight: 700, marginBottom: 4 }}>{cfgLabel} <span style={{ color: C.dim, fontWeight: 400 }}>({dPreset.label}→{dpPreset.label}, {pVal}µm)</span></div>
+                        <div style={{ color: C.dim, marginBottom: 6 }}>
+                          px/mrad H: <span style={{ color: C.H }}>{cfgR.h.ppm.toFixed(3)}</span>, V: <span style={{ color: C.V }}>{cfgR.v.ppm.toFixed(3)}</span> · err V: <span style={{ color: sc(cfgR.v.err) }}>{cfgR.v.err.toFixed(2)}%</span>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <div title={tip("tipPixelSize")} style={{ color: C.label, textTransform: "uppercase", letterSpacing: "0.06em", fontSize: 9 }}>{t("pixelSize")}</div>
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", color: C.dim }}>
+                            {DISTANCES.map(d => <span key={d}>{d}m: {(cfgR.v.mm100 * d / 100).toFixed(1)}mm</span>)}
+                          </div>
+                          <div title={tip("tipPosError")} style={{ color: C.label, textTransform: "uppercase", letterSpacing: "0.06em", fontSize: 9, marginTop: 4 }}>{t("posError")}</div>
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            {DISTANCES.map(d => { const ev = cfgR.v.err / 100 * d; return <span key={d} style={{ color: ev < 5 ? C.green : ev < 20 ? C.yellow : C.red }}>{d}m: {ev.toFixed(1)}mm</span>; })}
+                          </div>
+                        </div>
+                      </div>);
+                    })}
+                  </div>
+                )}
+              </div>);
+            })}
+          </div>
+        ) : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 12 }}>
             <thead><tr style={{ borderBottom: `1px solid ${C.border}` }}>
@@ -248,13 +341,14 @@ export default function App() {
             })}</tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* Coverage summary */}
       {portfolio.length > 0 ? (() => {
         const sortedPf = [...portfolio].sort((a, b) => a - b);
         const covered = pCfg.map((_, ci) => sortedPf.some(f => {
-          const row = pResults.find(r => r.f === f);
+          const row = pByF.get(f);
           return row && row.cfgs[ci].score <= pThr;
         }));
         const covCount = covered.filter(Boolean).length;

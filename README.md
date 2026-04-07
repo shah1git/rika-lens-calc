@@ -16,22 +16,27 @@
 
 ```
 src/
-  App.tsx       — главный компонент: состояние, computed, JSX
-  i18n.ts       — переводы RU/EN/ZH (объект T)
-  optics.ts     — интерфейсы + чистые функции (calcAxis, getScore, findMultiples)
-  ui.tsx        — палитра, пресеты, UI-компоненты (Cd, TH, Nm, Sel...)
-  main.tsx      — точка входа
-  global.css    — reset + CSS-тултипы для таблицы
-index.html      — подключение JetBrains Mono, lang=ru
-vite.config.ts  — base: /rika-lens-calc/
+  App.tsx        — главный компонент: состояние, computed, JSX
+  i18n.ts        — переводы RU/EN/ZH (объект T)
+  optics.ts      — интерфейсы + чистая функция calcAxis
+  optics.test.ts — vitest unit-тесты для calcAxis
+  theme.ts       — палитра C, sc/sbg, пресеты, parseHash, td, Align
+  ui.tsx         — UI-компоненты (Cd, TH, Nm, Sel, PB, LangSw, Flags, RikaLogo)
+  main.tsx       — точка входа
+  global.css     — reset + CSS-тултипы для таблицы
+index.html       — подключение JetBrains Mono, lang=ru, OG/meta
+vite.config.ts   — base: /rika-lens-calc/
 ```
 
 ## Разработка
 
 ```bash
 npm install
-npm run dev     # dev-сервер
-npm run build   # сборка в dist/
+npm run dev        # dev-сервер
+npm run build      # сборка в dist/
+npm test           # запустить unit-тесты (vitest)
+npm run test:watch # тесты в watch-режиме
+npm run lint       # проверить eslint
 ```
 
 ## Деплой
@@ -59,6 +64,19 @@ npm run build   # сборка в dist/
 - **minor** (3.x → 4.0) — новые блоки, фичи, существенные изменения
 
 ## Changelog
+
+### v7.3.0
+- **Технический долг полностью погашен:** lint 22 ошибки → 0
+- `ui.tsx` разделён на `theme.ts` (константы, палитра, пресеты, parseHash, td, Align) и `ui.tsx` (только компоненты)
+- `Nm` компонент переписан без ref-during-render — теперь использует derived state через `useState` + сравнение с предыдущим props
+- `td`, `TH` и `Sel` типизированы строго: убран `as any`, убран `any[]`, добавлен generic `Sel<T>`
+- Вместо `pResults.find(r => r.f === f)` теперь `Map<number, PRow>` через `useMemo`
+- Пустой `catch {}` заменён на `catch { /* ignore */ }`
+- Добавлены тесты `optics.test.ts` (vitest, 8 кейсов для `calcAxis`)
+- Добавлены скрипты `npm test` и `npm run test:watch`
+- **Мобильный лейаут:** ниже 640px таблица результатов превращается в список карточек, каждая с F, конфигами, покрытием, max. Сортировка через dropdown в шапке таблицы
+- **Open Graph / meta tags:** добавлены description, keywords, OG, Twitter Card в `index.html`
+- Новый i18n ключ `sortBy` на трёх языках
 
 ### v7.2.0
 - Убран блок «Портфель объективов» (матрица конфиги × выбранные F) — дублировал основную таблицу

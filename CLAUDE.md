@@ -7,12 +7,16 @@
 
 ## Архитектура
 
-Код разделён на 4 модуля:
+Код разделён на 5 модулей (v7.3.0):
 - `src/i18n.ts` — объект T (переводы RU/EN/ZH) + LANG_KEY
-- `src/optics.ts` — интерфейсы (Preset, AxisResult, SortMode, PConfig, PCfgResult) + чистые функции (calcAxis, getScore, findMultiples)
-- `src/ui.tsx` — палитра C, sc/sbg, пресеты, константы, parseHash, компоненты (Cd, TH, PB, Sel, Nm, RikaLogo, Flags, LangSw)
+- `src/optics.ts` — интерфейсы (Preset, AxisResult, PConfig, PCfgResult) + чистая функция calcAxis
+- `src/optics.test.ts` — vitest unit-тесты для calcAxis
+- `src/theme.ts` — палитра C, sc/sbg, пресеты, константы, parseHash, td, Align (всё не-компоненты)
+- `src/ui.tsx` — только React-компоненты (Cd, TH, PB, Sel, Nm, RikaLogo, Flags, LangSw)
 - `src/App.tsx` — главный компонент: состояние, computed, JSX портфельного UI
 Стили — inline. Единственный CSS-файл `src/global.css` содержит reset, тултипы и анимации.
+
+**Почему split theme/ui:** eslint правило `react-refresh/only-export-components` требует чтобы файлы с компонентами экспортировали только компоненты (для HMR fast refresh). Константы и helpers вынесены в `theme.ts`.
 
 ## Правила работы с кодом
 
@@ -30,6 +34,7 @@
 - Валидация (clamp min/max) на `onBlur`, НЕ на `onChange`
 - Компонент `Nm` хранит draft-строку в локальном state, коммитит при blur/Enter
 - Это нужно чтобы пользователь мог свободно стирать и вводить новое значение
+- Синхронизация с внешним `value` через паттерн derived state (`prevValue` useState + сравнение при рендере), НЕ через useRef — чтобы не ломать React Hooks правила (v7.3.0)
 
 ### Приоритет осей
 - С v7.1.0 выбор убран — всегда только вертикальная ось (vOnly)
@@ -82,10 +87,24 @@
 - Новые пресеты добавлять в конец массива, не менять индексы существующих (ломает `useState` дефолты)
 - Дефолтный индекс `dI` должен соответствовать нужному сенсору после добавления
 
+### Мобильный лейаут (v7.3.0)
+- `isMobile` state через `window.matchMedia("(max-width: 640px)")` + `addEventListener("change")`
+- Ниже 640px таблица результатов заменяется на список карточек
+- В карточке: чекбокс, #ранг, F, бейджи (IDEAL, #N), expand-кнопка, список конфигов с ошибками, покрытие, max
+- Сортировка на мобильном — через dropdown в шапке таблицы (вместо кликов по заголовкам колонок)
+- Раскрытая карточка: компактный вывод px/mrad + дистанции в строчку, без таблицы
+
+### Тесты (v7.3.0)
+- `npm test` — запуск vitest
+- `npm run test:watch` — watch-режим
+- Покрыты чистые функции из `optics.ts` (`calcAxis`): integer ppm, fractional error, mm100, симметрии
+
 ## Сборка и деплой
 
 ```bash
-npm run build        # должен пройти без ошибок
+npm run build        # должен пройти без ошибок (tsc -b && vite build)
+npm test             # должны пройти все тесты
+npm run lint         # eslint — должен быть 0 ошибок
 git push             # автодеплой на GitHub Pages через Actions
 ```
 
