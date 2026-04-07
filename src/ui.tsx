@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import type { Preset, RowResult, SortMode } from "./optics";
+import type { Preset } from "./optics";
 
 export const DETECTOR_PRESETS: Preset[] = [{label:"256×192",w:256,h:192},{label:"384×288",w:384,h:288},{label:"640×480",w:640,h:480},{label:"640×512",w:640,h:512},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024}];
 export const DISPLAY_PRESETS: Preset[] = [{label:"640×480",w:640,h:480},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024},{label:"1920×1080",w:1920,h:1080},{label:"2560×2560",w:2560,h:2560}];
@@ -56,37 +56,3 @@ export function Nm({ value, onChange, min, max }: { value: number; onChange: (v:
 }
 export function Cd({ title, children }: { title?: string; children: React.ReactNode }) { return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>{title && <div style={sS}>{title}</div>}{children}</div>); }
 export function TH({ children, align, w, color, tip, onClick }: { children?: React.ReactNode; align?: string; w?: number; color?: string; tip?: string; onClick?: () => void }) { return (<th title={tip || undefined} onClick={onClick} style={{ padding: "10px", textAlign: (align || "left") as any, width: w, fontSize: 10, color: color || C.dim, fontWeight: 600, whiteSpace: "nowrap", fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.04em", cursor: onClick ? "pointer" : tip ? "help" : "default" }}>{children}</th>); }
-export const CTip = ({ active, payload }: any) => { if (!active || !payload?.length) return null; const d = payload[0]?.payload; if (!d) return null; return (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", fontFamily: mn, fontSize: 11, color: C.text, lineHeight: 1.8 }}><div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>F={d.f}mm</div><div><span style={{ color: C.H }}>H:</span> {d.eH.toFixed(2)}%</div><div><span style={{ color: C.V }}>V:</span> {d.eV.toFixed(2)}%</div></div>); };
-
-export function SortModePanel({ mode, setMode, t }: { mode: SortMode; setMode: (m: SortMode) => void; t: (k: string) => string }) {
-  const ms: { k: SortMode; l: string; d: string; c: string; tp: string }[] = [{ k: "both", l: t("modeBoth"), d: t("modeBothDesc"), c: C.text, tp: t("tipModeBoth") }, { k: "vPriority", l: t("modeVPri"), d: t("modeVPriDesc"), c: C.V, tp: t("tipModeVPri") }, { k: "vOnly", l: t("modeVOnly"), d: t("modeVOnlyDesc"), c: C.V, tp: t("tipModeVOnly") }];
-  return (<Cd title={t("sortModeTitle")}><div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>{ms.map(m => (<button key={m.k} onClick={() => setMode(m.k)} title={m.tp} style={{ background: mode === m.k ? (m.c === C.text ? "#ffffff12" : m.c + "18") : "transparent", border: `1.5px solid ${mode === m.k ? (m.c === C.text ? "#ffffff44" : m.c) : C.border}`, borderRadius: 6, padding: "8px 14px", cursor: "pointer", textAlign: "left", flex: "1 1 180px" }}><div style={{ fontSize: 13, fontWeight: 700, color: mode === m.k ? m.c : C.dim, fontFamily: mn, marginBottom: 3 }}>{m.l}</div><div style={{ fontSize: 10, color: mode === m.k ? C.label : C.hint, lineHeight: 1.4 }}>{m.d}</div></button>))}</div><p style={{ fontSize: 11, color: C.hint, lineHeight: 1.6, margin: 0 }}>{t("sortModeWhy")}</p></Cd>);
-}
-
-export function Explain({ sorted, mode, t }: { sorted: RowResult[]; mode: SortMode; t: (k: string) => string }) {
-  const t1 = sorted[0]; if (!t1 || sorted.length < 2) return null;
-  const c2 = sorted.length > 5 ? sorted[5] : sorted[sorted.length - 1];
-  const txt = mode === "both" ? t("explainBoth") : mode === "vPriority" ? t("explainVPri") : t("explainVOnly");
-  const frm = mode === "both" ? t("explainFormulaBoth") : mode === "vPriority" ? t("explainFormulaVPri") : t("explainFormulaVOnly");
-  function sl(r: RowResult) { if (mode === "both") return `max(${r.h.err.toFixed(2)}, ${r.v.err.toFixed(2)}) = ${r.score.toFixed(2)}%`; if (mode === "vOnly") return `V = ${r.v.err.toFixed(2)}%`; return `V=${r.v.err.toFixed(2)}% H=${r.h.err.toFixed(2)}%`; }
-  const ms: React.CSSProperties = { fontFamily: mn, fontWeight: 700 };
-  return (<div style={{ background: C.xBg, border: `1px solid ${C.xBrd}`, borderRadius: 8, padding: "16px 20px", marginBottom: 20 }}>
-    <div style={{ ...sS, color: C.green, marginBottom: 12 }}>{t("explainTitle")}</div>
-    <p style={{ fontSize: 13, color: C.dim, lineHeight: 1.7, margin: "0 0 12px" }}>{txt}</p>
-    <div style={{ background: "#081210", borderRadius: 6, padding: "10px 16px", marginBottom: 14, fontFamily: mn, fontSize: 14, color: C.green, textAlign: "center" }}>{frm}</div>
-    <div style={{ fontSize: 12, color: C.label, marginBottom: 6 }}>{t("explainExample")}</div>
-    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
-      <div style={{ flex: "1 1 280px", background: "#081a10", border: `1px solid ${C.green}33`, borderRadius: 6, padding: "10px 14px" }}>
-        <div style={{ fontSize: 13, color: C.green, ...ms, marginBottom: 4 }}>F={t1.f}мм → #1</div>
-        <div style={{ fontSize: 12, color: C.dim, fontFamily: mn }}><span style={{ color: C.H }}>H:{t1.h.err.toFixed(2)}%</span> <span style={{ color: C.V }}>V:{t1.v.err.toFixed(2)}%</span></div>
-        <div style={{ fontSize: 11, color: C.green, fontFamily: mn, marginTop: 4 }}>{sl(t1)}</div>
-      </div>
-      <div style={{ flex: "1 1 280px", background: "#1a1408", border: `1px solid ${C.yellow}33`, borderRadius: 6, padding: "10px 14px" }}>
-        <div style={{ fontSize: 13, color: C.yellow, ...ms, marginBottom: 4 }}>F={c2.f}мм → #{sorted.indexOf(c2) + 1}</div>
-        <div style={{ fontSize: 12, color: C.dim, fontFamily: mn }}><span style={{ color: C.H }}>H:{c2.h.err.toFixed(2)}%</span> <span style={{ color: C.V }}>V:{c2.v.err.toFixed(2)}%</span></div>
-        <div style={{ fontSize: 11, color: C.yellow, fontFamily: mn, marginTop: 4 }}>{sl(c2)}</div>
-      </div>
-    </div>
-    <p style={{ fontSize: 12, color: C.label, lineHeight: 1.6, margin: 0, borderTop: `1px solid ${C.xBrd}`, paddingTop: 10 }}>{t("explainSort")}</p>
-  </div>);
-}
