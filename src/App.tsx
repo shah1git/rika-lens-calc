@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, Fragment } from "react";
 import { T, LANG_KEY } from "./i18n";
-import type { Preset, SortMode, PConfig, PCfgResult } from "./optics";
+import type { Preset, PConfig, PCfgResult } from "./optics";
 import { calcAxis } from "./optics";
 import { DETECTOR_PRESETS, DISPLAY_PRESETS, PITCH_OPTIONS, CMP_COLORS, DISTANCES, parseHash, C, sc, sbg, mn, sS, iS, td, PB, Sel, Nm, Cd, TH, RikaLogo, LangSw } from "./ui";
 
@@ -11,7 +11,6 @@ export default function App() {
   const t = (k: string) => T[lang]?.[k] ?? T.en[k] ?? k;
   const tip = t;
   const cl = (l: string) => { setLang(l); try { localStorage.setItem(LANG_KEY, l); } catch {} };
-  const [sm, setSm] = useState<SortMode>(() => (["vPriority", "vOnly"] as SortMode[]).includes(_hp.mode as SortMode) ? _hp.mode as SortMode : "vOnly");
   const [copied, setCopied] = useState(false);
 
   // Portfolio state
@@ -45,8 +44,8 @@ export default function App() {
     const cs = pCfg.map((c, i) => `c${i+1}=${c.detI},${c.pitchI},${c.dispI}`).join("&");
     const ns = pCfg.map((c, i) => c.name ? `n${i+1}=${encodeURIComponent(c.name)}` : "").filter(Boolean).join("&");
     const pf = portfolio.length ? `&pf=${portfolio.join(",")}` : "";
-    window.location.hash = `from=${pFF}&to=${pFT}&mode=${sm}&thr=${pThr}&sort=${pSort}&lang=${lang}&${cs}${ns ? "&" + ns : ""}${pf}`;
-  }, [pFF, pFT, sm, pThr, pSort, lang, pCfg, portfolio]);
+    window.location.hash = `from=${pFF}&to=${pFT}&thr=${pThr}&sort=${pSort}&lang=${lang}&${cs}${ns ? "&" + ns : ""}${pf}`;
+  }, [pFF, pFT, pThr, pSort, lang, pCfg, portfolio]);
 
   const copyLink = () => { navigator.clipboard.writeText(window.location.href).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); };
 
@@ -61,13 +60,11 @@ export default function App() {
     return { f, cfgs };
   }), [pCfg, pLo, pHi]);
 
-  const pMode: SortMode = sm;
   const pSorted = useMemo(() => {
     const rows = pResults.map(row => {
       const aggregate = Math.max(...row.cfgs.map(c => c.v.err));
-      const aggH = Math.max(...row.cfgs.map(c => c.h.err));
       const coverage = row.cfgs.filter(c => c.score <= pThr).length;
-      return { ...row, aggregate, aggH, coverage };
+      return { ...row, aggregate, coverage };
     });
     return rows.sort((a, b) => {
       if (pSort === "cov") {
@@ -77,22 +74,16 @@ export default function App() {
       }
       if (pSort.startsWith("c") && pSort !== "cov") {
         const ci = parseInt(pSort.slice(1)) - 1;
-        if (ci >= 0 && ci < a.cfgs.length) {
-          const d = a.cfgs[ci].v.err - b.cfgs[ci].v.err;
-          if (pMode === "vPriority" && Math.abs(d) < 0.001) return a.cfgs[ci].h.err - b.cfgs[ci].h.err;
-          return d;
-        }
+        if (ci >= 0 && ci < a.cfgs.length) return a.cfgs[ci].v.err - b.cfgs[ci].v.err;
       }
-      const d = a.aggregate - b.aggregate;
-      if (pMode === "vPriority" && Math.abs(d) < 0.001) return a.aggH - b.aggH;
-      return d;
+      return a.aggregate - b.aggregate;
     });
-  }, [pResults, pMode, pSort, pThr]);
+  }, [pResults, pSort, pThr]);
 
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v7.0.0</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v7.2.0</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
       </div>
 
       <p style={{ fontSize: 16, color: C.text, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720, fontWeight: 500 }}>{t("subtitle")}</p>
@@ -123,29 +114,18 @@ export default function App() {
         {pCfg.length < 6 && <button onClick={() => setPCfg(prev => [...prev, { name: "", detI: 3, pitchI: 0, dispI: 1 }])} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 14px", color: C.dim, cursor: "pointer", fontFamily: mn, fontSize: 12, marginTop: 8 }}>{t("addConfig")}</button>}
       </Cd>
 
-      {/* Portfolio sort mode - 2 buttons only */}
-      <Cd title={t("sortModeTitle")}>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-          {[{ k: "vOnly" as SortMode, l: t("modeVOnly"), d: t("modeVOnlyDesc"), tp: t("tipModeVOnly") }, { k: "vPriority" as SortMode, l: t("modeVPri"), d: t("modeVPriDesc"), tp: t("tipModeVPri") }].map(m => (
-            <button key={m.k} onClick={() => setSm(m.k)} title={m.tp} style={{
-              background: pMode === m.k ? C.V + "18" : "transparent",
-              border: `1.5px solid ${pMode === m.k ? C.V : C.border}`,
-              borderRadius: 6, padding: "8px 14px", cursor: "pointer", textAlign: "left" as const, flex: "1 1 180px"
-            }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: pMode === m.k ? C.V : C.dim, fontFamily: mn, marginBottom: 3 }}>{m.l}</div>
-              <div style={{ fontSize: 10, color: pMode === m.k ? C.label : C.hint, lineHeight: 1.4 }}>{m.d}</div>
-            </button>
-          ))}
-        </div>
-        <p style={{ fontSize: 11, color: C.hint, lineHeight: 1.6, margin: 0 }}>{t("sortModeWhy")}</p>
-      </Cd>
+      {/* Vertical-only notice */}
+      <div style={{ background: C.V + "10", border: `1px solid ${C.V}44`, borderRadius: 8, padding: "12px 18px", marginBottom: 20 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.V, fontFamily: mn, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("verticalOnlyTitle")}</div>
+        <p style={{ fontSize: 12, color: C.label, lineHeight: 1.6, margin: 0 }}>{t("verticalOnlyNote")}</p>
+      </div>
 
       {/* Results table — sorted by aggregate error */}
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden", marginBottom: 20 }}>
         <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
           <span style={sS}>{t("pResultsTitle")}</span>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 11, color: C.hint }}>{pMode === "vPriority" ? t("modeVPri") : t("modeVOnly")} · {pSorted.length} {t("tableCount")} {pLo}–{pHi}mm</span>
+            <span style={{ fontSize: 11, color: C.hint }}>{pSorted.length} {t("tableCount")} {pLo}–{pHi}mm</span>
             <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.hint }}>{t("thresholdLabel")} <Nm value={pThr} onChange={setPThr} min={0.1} max={10} /> %</span>
           </div>
         </div>
@@ -176,7 +156,6 @@ export default function App() {
               const isIdeal = row.aggregate < 0.01;
               const isTop5 = i < 5;
               const isExp = pExp === row.f;
-              const modeLabel = pMode === "vPriority" ? t("modeVPri") : t("modeVOnly");
               let worstCi = 0;
               row.cfgs.forEach((c, ci) => { if (c.v.err > row.cfgs[worstCi].v.err) worstCi = ci; });
               const worstCfgLabel = pCfg[worstCi].name || `${DETECTOR_PRESETS[pCfg[worstCi].detI].label}→${DISPLAY_PRESETS[pCfg[worstCi].dispI].label}`;
@@ -222,10 +201,10 @@ export default function App() {
                     const sH = (dPreset.w / dpPreset.w).toFixed(4), sV = (dPreset.h / dpPreset.h).toFixed(4);
                     const belowThr = cfgR.score <= pThr;
                     const cfgTip = lang === "ru"
-                      ? `Ошибка ${cfgR.score.toFixed(2)}% для конфигурации "${cfgLabel}" (сенсор ${dPreset.w}×${dPreset.h}, шаг ${pVal}µm, дисплей ${dpPreset.w}×${dpPreset.h}). Масштаб H: ${sH}, V: ${sV}. px/мрад H: ${cfgR.h.ppm.toFixed(3)} (ош. ${cfgR.h.err.toFixed(2)}%), V: ${cfgR.v.ppm.toFixed(3)} (ош. ${cfgR.v.err.toFixed(2)}%). Режим ${modeLabel}: итог ${cfgR.score.toFixed(2)}%. ${belowThr ? `● Ниже порога ${pThr}% — объектив подходит для этой конфигурации.` : `Выше порога ${pThr}%.`}`
+                      ? `Ошибка ${cfgR.score.toFixed(2)}% (только по вертикали) для конфигурации "${cfgLabel}" (сенсор ${dPreset.w}×${dPreset.h}, шаг ${pVal}µm, дисплей ${dpPreset.w}×${dpPreset.h}). Масштаб H: ${sH}, V: ${sV}. px/мрад H: ${cfgR.h.ppm.toFixed(3)} (ош. ${cfgR.h.err.toFixed(2)}%), V: ${cfgR.v.ppm.toFixed(3)} (ош. ${cfgR.v.err.toFixed(2)}%). ${belowThr ? `● Ниже порога ${pThr}% — объектив подходит для этой конфигурации.` : `Выше порога ${pThr}%.`}`
                       : lang === "zh"
-                      ? `"${cfgLabel}"误差${cfgR.score.toFixed(2)}% (传感器${dPreset.w}×${dPreset.h}, 间距${pVal}µm, 显示器${dpPreset.w}×${dpPreset.h})。缩放H: ${sH}, V: ${sV}。px/mrad H: ${cfgR.h.ppm.toFixed(3)} (误差${cfgR.h.err.toFixed(2)}%), V: ${cfgR.v.ppm.toFixed(3)} (误差${cfgR.v.err.toFixed(2)}%)。模式${modeLabel}: 综合${cfgR.score.toFixed(2)}%。${belowThr ? `● 低于阈值${pThr}%——镜头适合此配置。` : `高于阈值${pThr}%。`}`
-                      : `Error ${cfgR.score.toFixed(2)}% for "${cfgLabel}" (sensor ${dPreset.w}×${dPreset.h}, pitch ${pVal}µm, display ${dpPreset.w}×${dpPreset.h}). Scale H: ${sH}, V: ${sV}. px/mrad H: ${cfgR.h.ppm.toFixed(3)} (err ${cfgR.h.err.toFixed(2)}%), V: ${cfgR.v.ppm.toFixed(3)} (err ${cfgR.v.err.toFixed(2)}%). Mode ${modeLabel}: overall ${cfgR.score.toFixed(2)}%. ${belowThr ? `● Below threshold ${pThr}% — lens works for this configuration.` : `Above threshold ${pThr}%.`}`;
+                      ? `"${cfgLabel}"误差${cfgR.score.toFixed(2)}%（仅垂直）(传感器${dPreset.w}×${dPreset.h}, 间距${pVal}µm, 显示器${dpPreset.w}×${dpPreset.h})。缩放H: ${sH}, V: ${sV}。px/mrad H: ${cfgR.h.ppm.toFixed(3)} (误差${cfgR.h.err.toFixed(2)}%), V: ${cfgR.v.ppm.toFixed(3)} (误差${cfgR.v.err.toFixed(2)}%)。${belowThr ? `● 低于阈值${pThr}%——镜头适合此配置。` : `高于阈值${pThr}%。`}`
+                      : `Error ${cfgR.score.toFixed(2)}% (vertical only) for "${cfgLabel}" (sensor ${dPreset.w}×${dPreset.h}, pitch ${pVal}µm, display ${dpPreset.w}×${dpPreset.h}). Scale H: ${sH}, V: ${sV}. px/mrad H: ${cfgR.h.ppm.toFixed(3)} (err ${cfgR.h.err.toFixed(2)}%), V: ${cfgR.v.ppm.toFixed(3)} (err ${cfgR.v.err.toFixed(2)}%). ${belowThr ? `● Below threshold ${pThr}% — lens works for this configuration.` : `Above threshold ${pThr}%.`}`;
                     return <td key={ci} title={cfgTip} style={{ ...td("right"), cursor: "help", fontWeight: 600, color: sc(cfgR.score) }}>{cfgR.score.toFixed(2)}{belowThr && <span style={{ fontSize: 8, color: C.green, marginLeft: 4 }}>●</span>}</td>;
                   })}
                   <td title={covTip} onClick={(e) => { e.stopPropagation(); setPSort("cov"); }} style={{ ...td("center"), cursor: "pointer", fontWeight: 600, color: row.coverage === pCfg.length ? C.green : row.coverage > 0 ? C.yellow : C.hint }}>{row.coverage}/{pCfg.length}</td>
@@ -271,101 +250,41 @@ export default function App() {
         </div>
       </div>
 
-      {/* Portfolio matrix */}
-      {portfolio.length > 0 ? (
-        <div style={{ background: "#0c1a14", border: `1px solid #1a3a28`, borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>
-          <div style={sS}>{t("portfolioTitle")}</div>
-          <div style={{ fontSize: 11, color: C.hint, marginBottom: 10 }}>{t("pPortfolioDesc")}</div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mn, fontSize: 12 }}>
-              <thead><tr>
-                <TH></TH>
-                {[...portfolio].sort((a,b) => a-b).map(f => {
-                  const fhTip = lang === "ru" ? `F=${f} мм в портфеле. Нажмите ✕ чтобы убрать.`
-                    : lang === "zh" ? `F=${f}mm在组合中。点击✕移除。`
-                    : `F=${f} mm in portfolio. Click ✕ to remove.`;
-                  return (
-                    <TH key={f} align="center" tip={fhTip}>
-                      F={f} <button onClick={() => setPortfolio(prev => prev.filter(x => x !== f))} style={{ background: "transparent", border: "none", color: C.hint, cursor: "pointer", fontSize: 10 }}>✕</button>
-                    </TH>
-                  );
-                })}
-                <TH align="center" color={C.green}>{t("bestLens")}</TH>
-              </tr></thead>
-              <tbody>
-                {pCfg.map((cfg, ci) => {
-                  const cfgLabel = cfg.name || `${DETECTOR_PRESETS[cfg.detI].label}→${DISPLAY_PRESETS[cfg.dispI].label}`;
-                  const sortedPf = [...portfolio].sort((a,b) => a-b);
-                  const pfErrors = sortedPf.map(f => {
-                    const row = pResults.find(r => r.f === f);
-                    return row ? row.cfgs[ci] : null;
-                  });
-                  let bestF = sortedPf[0], bestErr = Infinity;
-                  pfErrors.forEach((e, i) => {
-                    if (e && e.score < bestErr) { bestErr = e.score; bestF = sortedPf[i]; }
-                  });
-                  const dPreset = DETECTOR_PRESETS[cfg.detI], dpPreset = DISPLAY_PRESETS[cfg.dispI], pVal = PITCH_OPTIONS[cfg.pitchI];
-                  const bestTip = lang === "ru"
-                    ? `Лучший объектив из портфеля для этой конфигурации — F=${bestF} мм с ошибкой ${bestErr.toFixed(2)}%. Из ${sortedPf.length} объективов в портфеле.`
-                    : lang === "zh"
-                    ? `该配置的最佳组合镜头——F=${bestF}mm，误差${bestErr.toFixed(2)}%。组合中共${sortedPf.length}个镜头。`
-                    : `Best portfolio lens for this configuration — F=${bestF} mm with ${bestErr.toFixed(2)}% error. From ${sortedPf.length} lenses in portfolio.`;
-                  return (
-                    <tr key={ci} style={{ borderBottom: `1px solid #1a3a28`, borderLeft: `3px solid ${CMP_COLORS[ci]}` }}>
-                      <td style={{ ...td("left"), color: CMP_COLORS[ci], fontWeight: 700 }}>{cfgLabel}</td>
-                      {pfErrors.map((e, i) => {
-                        const isBest = sortedPf[i] === bestF;
-                        const isZero = e && e.score < 0.01;
-                        const matTip = e ? (lang === "ru"
-                          ? `При F=${sortedPf[i]} мм конфигурация "${cfgLabel}" (сенсор ${dPreset.w}×${dPreset.h} → дисплей ${dpPreset.w}×${dpPreset.h}, pitch ${pVal}µm) даёт ошибку ${e.score.toFixed(2)}%. px/мрад H: ${e.h.ppm.toFixed(3)} (${e.h.err.toFixed(2)}%), V: ${e.v.ppm.toFixed(3)} (${e.v.err.toFixed(2)}%).`
-                          : lang === "zh"
-                          ? `F=${sortedPf[i]}mm时配置"${cfgLabel}" (传感器${dPreset.w}×${dPreset.h} → 显示器${dpPreset.w}×${dpPreset.h}, 间距${pVal}µm) 误差${e.score.toFixed(2)}%。px/mrad H: ${e.h.ppm.toFixed(3)} (${e.h.err.toFixed(2)}%), V: ${e.v.ppm.toFixed(3)} (${e.v.err.toFixed(2)}%)。`
-                          : `At F=${sortedPf[i]} mm "${cfgLabel}" (sensor ${dPreset.w}×${dPreset.h} → display ${dpPreset.w}×${dpPreset.h}, pitch ${pVal}µm) gives ${e.score.toFixed(2)}% error. px/mrad H: ${e.h.ppm.toFixed(3)} (${e.h.err.toFixed(2)}%), V: ${e.v.ppm.toFixed(3)} (${e.v.err.toFixed(2)}%).`) : "";
-                        return (
-                          <td key={i} title={matTip} style={{
-                            ...td("center"), fontWeight: isBest ? 700 : 400,
-                            color: e ? sc(e.score) : C.hint,
-                            border: isBest ? `1px solid ${C.green}` : "none",
-                            cursor: "help",
-                          }}>
-                            {e ? e.score.toFixed(2) : "—"}
-                            {isZero && <span style={{ color: C.green }}> ✦</span>}
-                            {e && e.score <= pThr && <span style={{ fontSize: 8, color: C.green, marginLeft: 4 }}>●</span>}
-                          </td>
-                        );
-                      })}
-                      <td title={bestTip} style={{ ...td("center"), fontWeight: 700, color: C.green, cursor: "help" }}>
-                        {bestF} {lang === "ru" ? "мм" : "mm"} ({bestErr.toFixed(2)}%)
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          {/* Coverage indicator */}
-          <div title={t("pTipCoverage")} style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", cursor: "help" }}>
-            <span style={{ fontSize: 12, color: C.label, fontFamily: mn }}>{t("coverageLabel")}:</span>
-            {(() => {
-              const sortedPf = [...portfolio].sort((a,b) => a-b);
-              const covered = pCfg.map((_, ci) => sortedPf.some(f => {
-                const row = pResults.find(r => r.f === f);
-                return row && row.cfgs[ci].score <= pThr;
-              }));
-              const covCount = covered.filter(Boolean).length;
-              const uncoveredNames = pCfg.map((cfg, ci) => !covered[ci] ? (cfg.name || `${DETECTOR_PRESETS[cfg.detI].label}→${DISPLAY_PRESETS[cfg.dispI].label}`) : null).filter(Boolean);
-              return (<>
-                <span style={{ fontSize: 13, fontWeight: 700, color: covCount === pCfg.length ? C.green : C.yellow, fontFamily: mn }}>
-                  {covCount === pCfg.length ? t("fullCoverage") : `${covCount} ${t("outOf")} ${pCfg.length}`}
+      {/* Coverage summary */}
+      {portfolio.length > 0 ? (() => {
+        const sortedPf = [...portfolio].sort((a, b) => a - b);
+        const covered = pCfg.map((_, ci) => sortedPf.some(f => {
+          const row = pResults.find(r => r.f === f);
+          return row && row.cfgs[ci].score <= pThr;
+        }));
+        const covCount = covered.filter(Boolean).length;
+        const uncoveredNames = pCfg.map((cfg, ci) => !covered[ci] ? (cfg.name || `${DETECTOR_PRESETS[cfg.detI].label}→${DISPLAY_PRESETS[cfg.dispI].label}`) : null).filter(Boolean) as string[];
+        const isFull = covCount === pCfg.length;
+        return (
+          <div style={{ background: isFull ? "#0c1a14" : C.card, border: `1px solid ${isFull ? "#1a3a28" : C.border}`, borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>
+            <div title={t("pTipCoverage")} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", cursor: "help", marginBottom: 8 }}>
+              <span style={{ fontSize: 11, color: C.label, fontFamily: mn, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("coverageLabel")}:</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: isFull ? C.green : C.yellow, fontFamily: mn }}>
+                {isFull ? t("fullCoverage") : `${covCount} ${t("outOf")} ${pCfg.length}`}
+              </span>
+            </div>
+            <div style={{ fontSize: 11, color: C.hint, fontFamily: mn, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <span>{lang === "ru" ? "В портфеле:" : lang === "zh" ? "组合中：" : "In portfolio:"}</span>
+              {sortedPf.map(f => (
+                <span key={f} style={{ background: "#00ff8812", border: `1px solid ${C.green}44`, borderRadius: 4, padding: "2px 8px", color: C.green, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  F={f}
+                  <button onClick={() => setPortfolio(prev => prev.filter(x => x !== f))} style={{ background: "transparent", border: "none", color: C.hint, cursor: "pointer", fontSize: 11, padding: 0, lineHeight: 1 }}>✕</button>
                 </span>
-                {uncoveredNames.length > 0 && <span style={{ fontSize: 12, color: C.yellow }}>{t("notCovered")} {uncoveredNames.join(", ")}</span>}
-              </>);
-            })()}
+              ))}
+            </div>
+            {uncoveredNames.length > 0 && (
+              <div style={{ fontSize: 12, color: C.yellow, marginTop: 8 }}>{t("notCovered")} {uncoveredNames.join(", ")}</div>
+            )}
           </div>
-        </div>
-      ) : (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "20px", marginBottom: 20, textAlign: "center" }}>
-          <span style={{ fontSize: 13, color: C.hint }}>{t("portfolioEmpty")}</span>
+        );
+      })() : (
+        <div style={{ background: C.card, border: `1px dashed ${C.border}`, borderRadius: 8, padding: "16px 20px", marginBottom: 20, textAlign: "center" }}>
+          <span style={{ fontSize: 12, color: C.hint }}>{t("portfolioEmpty")}</span>
         </div>
       )}
 
