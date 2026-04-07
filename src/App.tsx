@@ -92,7 +92,7 @@ export default function App() {
   return (<div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: "0 16px 40px" }}>
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 0 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v7.4.1</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
+        <RikaLogo /><h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, color: "#fff", fontFamily: mn }}>{t("title")} <span style={{ fontSize: 11, fontWeight: 400, color: C.hint }}>v7.4.2</span></h1><button onClick={copyLink} style={{ background: copied ? "#00ff8818" : "#ffffff08", border: `1px solid ${copied ? C.green : C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, color: copied ? C.green : C.dim, cursor: "pointer", fontFamily: mn, whiteSpace: "nowrap" }}>{copied ? t("linkCopied") : t("copyLink")}</button><LangSw lang={lang} setLang={cl} />
       </div>
 
       <p style={{ fontSize: 16, color: C.text, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 720, fontWeight: 500 }}>{t("subtitle")}</p>
@@ -145,10 +145,12 @@ export default function App() {
                     {pResults.map(row => {
                       const err = row.cfgs[ci].v.err;
                       const inPf = portfolio.includes(row.f);
-                      const bg = err < 1 ? C.green : err < 5 ? C.yellow : C.red;
-                      const cellTip = lang === "ru" ? `F=${row.f}мм · ${cfgLabel} · ${err.toFixed(2)}%${err <= pThr ? " · ● ниже порога" : ""}${inPf ? " · в портфеле" : ""}`
-                        : lang === "zh" ? `F=${row.f}mm · ${cfgLabel} · ${err.toFixed(2)}%${err <= pThr ? " · ●低于阈值" : ""}${inPf ? " · 在组合中" : ""}`
-                        : `F=${row.f}mm · ${cfgLabel} · ${err.toFixed(2)}%${err <= pThr ? " · ● below threshold" : ""}${inPf ? " · in portfolio" : ""}`;
+                      const isJackpot = err < 0.01;
+                      const bg = isJackpot ? "#ffffff" : err < 1 ? C.green : err < 5 ? C.yellow : C.red;
+                      const jackpotSuffix = isJackpot ? (lang === "ru" ? " · ✦ ДЖЕКПОТ" : lang === "zh" ? " · ✦ 中奖" : " · ✦ JACKPOT") : "";
+                      const cellTip = lang === "ru" ? `F=${row.f}мм · ${cfgLabel} · ${err.toFixed(2)}%${jackpotSuffix}${!isJackpot && err <= pThr ? " · ● ниже порога" : ""}${inPf ? " · в портфеле" : ""}`
+                        : lang === "zh" ? `F=${row.f}mm · ${cfgLabel} · ${err.toFixed(2)}%${jackpotSuffix}${!isJackpot && err <= pThr ? " · ●低于阈值" : ""}${inPf ? " · 在组合中" : ""}`
+                        : `F=${row.f}mm · ${cfgLabel} · ${err.toFixed(2)}%${jackpotSuffix}${!isJackpot && err <= pThr ? " · ● below threshold" : ""}${inPf ? " · in portfolio" : ""}`;
                       return (
                         <div
                           key={row.f}
@@ -161,6 +163,9 @@ export default function App() {
                             border: inPf ? `1px solid #fff` : "1px solid transparent",
                             cursor: "pointer",
                             boxSizing: "border-box",
+                            boxShadow: isJackpot ? `0 0 6px ${C.green}, 0 0 2px ${C.green}` : undefined,
+                            position: isJackpot ? "relative" : undefined,
+                            zIndex: isJackpot ? 1 : undefined,
                           }}
                         />
                       );
@@ -192,6 +197,9 @@ export default function App() {
         </div>
         {/* Legend */}
         <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10, marginTop: 14, paddingTop: 10, borderTop: `1px solid ${C.border}`, fontSize: 10, color: C.hint, fontFamily: mn }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 12, height: 10, background: "#fff", display: "inline-block", boxShadow: `0 0 4px ${C.green}` }} /><span style={{ color: C.green, fontWeight: 700 }}>✦ 0%</span>
+          </span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <span style={{ width: 12, height: 10, background: C.green, display: "inline-block" }} />&lt;1%
           </span>
