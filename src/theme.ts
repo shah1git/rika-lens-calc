@@ -1,7 +1,7 @@
 import type { Preset } from "./optics";
 
 export const DETECTOR_PRESETS: Preset[] = [{label:"256×192",w:256,h:192},{label:"384×288",w:384,h:288},{label:"640×480",w:640,h:480},{label:"640×512",w:640,h:512},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024}];
-export const DISPLAY_PRESETS: Preset[] = [{label:"640×480",w:640,h:480},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024},{label:"1920×1080",w:1920,h:1080},{label:"2560×2560",w:2560,h:2560}];
+export const DISPLAY_PRESETS: Preset[] = [{label:"640×480",w:640,h:480},{label:"1024×768",w:1024,h:768},{label:"1280×1024",w:1280,h:1024},{label:"1920×1080",w:1920,h:1080},{label:"2560×2560",w:2560,h:2560},{label:"1920×1440",w:1920,h:1440}];
 export const PITCH_OPTIONS = [12, 15, 17, 25];
 export const CMP_COLORS = ["#00ccff", "#ff66ff", "#ffcc00", "#00ff88", "#ff6644", "#aa88ff", "#88ddff", "#ffaa33", "#ff4488"];
 export const DISTANCES = [100, 200, 300, 500, 700, 1000];
